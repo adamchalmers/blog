@@ -1,5 +1,5 @@
 # The URL the site will be built for
-base_url = "https://blog.adamchalmers.com"
+base_url = "https://dhammascale.rs"
 
 # Whether to automatically compile all Sass files in the sass directory
 compile_sass = true
@@ -9,23 +9,21 @@ compile_sass = true
 highlight_code = true
 
 # Whether to build a search index to be used later on by a JavaScript library
-build_search_index = true
+build_search_index = false
+
+theme = "anpu"
+title = "A Less Mad March"
+description = "Thoughts, mostly on Rust for now"
+generate_feed = true
 
 taxonomies = [
-    {name = "tags", paginate_by = 5},
+    { name = "categories" },
+    { name = "tags" },
 ]
-
-theme = "zulma"
 
 [extra]
 # Put all your custom variables here
-zulma_themes = ["default", "darkly", "flatly", "pulse", "simplex", "lux", "slate", "solar", "superhero"]
-zulma_menu = [
-    {url = "$BASE_URL/categories", name = "Categories"},
-    {url = "$BASE_URL/tags", name = "Tags"},
-    {url = "$BASE_URL/authors", name = "Authors"}
+anpu_menu_links = [
+    { url = "$BASE_URL/about/", name = "About" },
+    { url = "$BASE_URL/tags/", name = "Tags" },
 ]
-zulma_brand = {text = "Home"}
-zulma_title = "My Blog"
-zulma_theme = "darkly"
-zulma_allow_theme_selection = true
