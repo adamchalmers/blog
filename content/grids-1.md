@@ -299,7 +299,7 @@ criterion_main!(benches);
 
 You can run these benchmarks with `cargo bench`. Note the use of [black_box](https://docs.rs/criterion/0.3.4/criterion/fn.black_box.html) to stop the compiler from optimizing away all our code. Sometimes the compiler decides that, because ultimately computing all this data doesn't have any side-effect (like printing a number to the screen, or sending it in a HTTP request), it doesn't even need to do the work at all. That's awesome for making your production binaries faster, but it's really annoying when you're trying to benchmark code.
 
-> Technically Criterion has its own subcommand, `cargo criterion`, which is supposed to be better,but when I try to run that I always run into [this panic](https://github.com/bheisler/criterion.rs/issues/466) and I don't know how to fix it yet. But normal `cargo bench` works fine so I'm not very invested in debugging at this point.
+> Technically Criterion has its own subcommand, `cargo criterion`, which is supposed to be better, but when I try to run that I always run into [this panic](https://github.com/bheisler/criterion.rs/issues/466) and I don't know how to fix it yet. But normal `cargo bench` works fine so I'm not very invested in debugging at this point.
 
 Well, I ran the benchmarks on my Macbook Pro, which has an Intel Core i7-9750H CPU, and here's the results.
 
