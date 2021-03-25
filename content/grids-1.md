@@ -122,7 +122,7 @@ I remember reading some old programmer trick from the 80s, when computers were s
 
 Why might this be faster? Well, modern CPUs are much faster at iterating through arrays rather than following pointers, because of "data locality" (see this [stack overflow](https://stackoverflow.com/questions/19064384/arrays-vs-linked-lists-in-terms-of-locality) for the basics). The [Vec docs](https://doc.rust-lang.org/std/vec/struct.Vec.html#guarantees) define `Vec` as "a (pointer, capacity, length) triplet. No more, no less." This means that iterating over `Vec<T>` will only require following a pointer _once_ (to get to the start of the Vec). But iterating over a `Vec<Vec<T>>` will require `n` pointer follows, one for each nested vector, because they're all separate Vecs.
 
-![Visualisation of 1d and 2d Vecs](../vec_comparison.jpg)
+![Visualisation of 1d and 2d Vecs](/grids-1/vec_comparison.jpg)
 
 The 1D Vec solution is very similar to the 2D Vec solution, except we need _un poquito de_ math to translate between the 2D representation (which callers use) and the 1D representation (which our implementation uses). You can see this in the `get` and `set` methods. Anyway, here's `vec1d.rs`:
 
@@ -303,9 +303,9 @@ You can run these benchmarks with `cargo bench`. Note the use of [black_box](htt
 
 Well, I ran the benchmarks on my Macbook Pro, which has an Intel Core i7-9750H CPU, and here's the results.
 
-![Benchmark GetRandom](../getrandom.png)
-![Benchmark GetOrder](../getorder.png)
-![Benchmark Set](../set.png)
+![Benchmark GetRandom](/grids-1/getrandom.png)
+![Benchmark GetOrder](/grids-1/getorder.png)
+![Benchmark Set](/grids-1/set.png)
 
 Wow. Seems like those 80s programmers really did know something. Storing the elements in 1D is _way_ faster than storing them in 2D, even though the two implementations have the same [Big O complexity](https://justin.abrah.ms/computer-science/big-o-notation-explained.html). I'm glad we benchmarked it.
 
@@ -313,8 +313,8 @@ Note: Different CPU architectures optimize things differently! You can always cl
 
 Oh, and here's a bonus graph comparing the "GetOrder" benchmark, run for both 1D and 2D Vec implementations, getting the first 1, 50, 100 or 200 elements from the grid. I'm only including it here to show you how cool Criterion is. Seriously, this crate can fit so many graph visualisations in it.
 
-![Benchmark GetOrder violin](../getorder_violin.png)
+![Benchmark GetOrder violin](/grids-1/getorder_violin.png)
 
-OK, so we've established that for all workloads, 1D Vec is faster than 2D Vec. But... can we do even better? Why are we even storing these elements in a Vec, which allocates memory on the heap? What if we could store them all in the stack, and avoid that allocation? In part two of this series, we'll use [const generics](https://blog.rust-lang.org/2021/02/26/const-generics-mvp-beta) to create a generic-sized array for representing the grid.
+OK, so we've established that for all workloads, 1D Vec is faster than 2D Vec. But... can we do even better? Why are we even storing these elements in a Vec, which allocates memory on the heap? What if we could store them all in the stack, and avoid that allocation? In [part two](/grids-2) of this series, we'll use [const generics](https://blog.rust-lang.org/2021/02/26/const-generics-mvp-beta) to create a generic-sized array for representing the grid.
 
-In the meantime, thanks for reading part one! If you have any questions, or suggestions for improving the code, please let me know on [twitter](https://twitter.com/adam_chal) or via [email](mailto:adam.s.chalmers@gmail.com). Again, the code is [on GitHub](https://github.com/adamchalmers/const_generic_grid). Thanks!
+Thanks for reading! If you have any questions or suggestions, please let me know on [twitter](https://twitter.com/adam_chal) or via [email](mailto:adam.s.chalmers@gmail.com). The code is [on GitHub](https://github.com/adamchalmers/const_generic_grid) and if you have suggestions for improving it, feel free to open a PR. Thanks!
