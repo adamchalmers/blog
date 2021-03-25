@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer-when-downgrade">
+
+    <title>Grids in Rust, part 2: const generics</title>
+    <meta name="description" content="Thoughts, mostly about tech">
+
+    <link rel="stylesheet" href="https:&#x2F;&#x2F;blog.adamchalmers.com&#x2F;main.css">
+
+    
+    <link rel="alternate"
+        type="application/atom+xml"
+        title="RSS" href="https://blog.adamchalmers.com/atom.xml">
+    
+
+    
+    
+</head>
+
+<body>
+    <a class="skip-main" href="#main">Skip to content</a>
+    <div class="container">
+        <header>
+            <h1 class="site-header">
+                <a href="https:&#x2F;&#x2F;blog.adamchalmers.com">A Less Mad March</a>
+            </h1>
+            <nav>
+                
+                
+                
+                <a 
+                    href="https:&#x2F;&#x2F;blog.adamchalmers.com&#x2F;about&#x2F;">About</a>
+                
+                
+                <a 
+                    href="https:&#x2F;&#x2F;blog.adamchalmers.com&#x2F;tags&#x2F;">Tags</a>
+                
+                
+            </nav>
+        </header>
+        <main id="main" tabindex="-1">
+            
+
+<article class="post">
+    <header>
+        <h1>Grids in Rust, part 2: const generics</h1>
+    </header>
+    <div class="content">
+        <p>In <a href="/grids-1">part one</a>, we built two different implementations of a Grid datatype. Benchmarks revealed that a single/1D vector was a better choice than a nested/2D vector. In this post, we'll write a new implementation that uses arrays instead of Vec. This should be faster!</p>
+<span id="continue-reading"></span><h1 id="stack-heap-and-arrays">Stack, Heap and Arrays</h1>
+<p>When Rust allocates memory for a value, it can allocate on either the stack or the heap. <a href="http://web.mit.edu/rust-lang_v1.25/arch/amd64_ubuntu1404/share/doc/rust/html/book/first-edition/the-stack-and-the-heap.html#runtime-efficiency">This page</a> explains the difference between the two, but here's my attempt to summarize: <em>stack fast, heap slow</em>. But, also, <em>stack restrictive, heap flexible</em>. Data structures that require following pointers go to the heap. Data structures whose layout can be figured out by the compiler at compiletime can go on the stack.</p>
+<p>This &quot;stack vs. heap&quot; binary is perfectly represented by &quot;array vs. Vec&quot;.The <a href="https://doc.rust-lang.org/std/vec/struct.Vec.html#guarantees">docs</a> state that for a Vec, &quot;the memory it points to is on the heap... and its pointer points to <code>len</code> initialized, contiguous elements in order.&quot; OK, so Vecs inherently use the heap and pointers. This makes them slower than stack-allocated data.</p>
+<p>On the other hand, because <a href="https://doc.rust-lang.org/stable/std/primitive.array.html">arrays</a> have a fixed size, the compiler knows exactly how much RAM they require, and can store them on the stack. The downside is that an array type <code>[T; N]</code> has exactly <code>N</code> elements, no more, no less, and you have to know the value of <code>N</code> at compile-time. You can't determine <code>N</code> using user input, or a command-line flag.</p>
+<p>Well, it just so happens that for my use-case (a <a href="https://github.com/adamchalmers/raytracer">ray tracer</a>)</p>
+<p>Thanks for reading! If you have any questions or suggestions, please let me know on <a href="https://twitter.com/adam_chal">twitter</a> or via <a href="mailto:adam.s.chalmers@gmail.com">email</a>. The code is <a href="https://github.com/adamchalmers/const_generic_grid">on GitHub</a> and if you have suggestions for improving it, feel free to open a PR. Thanks!</p>
+
+    </div>
+
+    
+    <div class="article-info">
+        
+        <div class="article-date">24 March 2021</div>
+        
+        <div class="article-taxonomies">
+            
+            
+                <ul class="article-tags">
+                    
+                    <li><a href="https://blog.adamchalmers.com/tags/rust/">#rust</a></li>
+                    
+                    <li><a href="https://blog.adamchalmers.com/tags/programming/">#programming</a></li>
+                    
+                </ul>
+            
+        </div>
+    </div>
+
+</article>
+
+
+        </main>
+        <footer>
+            <p>
+                © A Less Mad March 2021<br>
+                Powered by <a target="_blank" href="https://getzola.com/">Zola</a>, Theme <a target="_blank"
+                    href="https://github.com/zbrox/anpu">Anpu</a>.
+            </p>
+            <p>
+                
+                
+            </p>
+        </footer>
+    </div>
+</body>
+
+</html>

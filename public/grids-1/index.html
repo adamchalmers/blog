@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer-when-downgrade">
+
+    <title>Grids in Rust, part 1: nested vs. flat Vecs</title>
+    <meta name="description" content="Thoughts, mostly about tech">
+
+    <link rel="stylesheet" href="https:&#x2F;&#x2F;blog.adamchalmers.com&#x2F;main.css">
+
+    
+    <link rel="alternate"
+        type="application/atom+xml"
+        title="RSS" href="https://blog.adamchalmers.com/atom.xml">
+    
+
+    
+    
+</head>
+
+<body>
+    <a class="skip-main" href="#main">Skip to content</a>
+    <div class="container">
+        <header>
+            <h1 class="site-header">
+                <a href="https:&#x2F;&#x2F;blog.adamchalmers.com">A Less Mad March</a>
+            </h1>
+            <nav>
+                
+                
+                
+                <a 
+                    href="https:&#x2F;&#x2F;blog.adamchalmers.com&#x2F;about&#x2F;">About</a>
+                
+                
+                <a 
+                    href="https:&#x2F;&#x2F;blog.adamchalmers.com&#x2F;tags&#x2F;">Tags</a>
+                
+                
+            </nav>
+        </header>
+        <main id="main" tabindex="-1">
+            
+
+<article class="post">
+    <header>
+        <h1>Grids in Rust, part 1: nested vs. flat Vecs</h1>
+    </header>
+    <div class="content">
+        <p>While doing some graphics programming in Rust, I needed to write an efficient type for reading and writing data in a 2D grid. In this post, we'll compare two different implementations of a grid, dipping our toes into data parallelism with Rayon and benchmarking with Criterion.</p>
+<span id="continue-reading"></span>
+<p>Oh, and all the code I reference here is <a href="https://github.com/adamchalmers/const_generic_grid">on GitHub</a>.</p>
+<h1 id="defining-the-grid-trait">Defining the Grid trait</h1>
+<p>The <code>Grid</code> API is pretty minimal. For my ray tracer, I just need a way to set each pixel's colour, and then a way to read each pixel's colour when it's time to generate the .PNG file.</p>
+<p>Firstly, we need a way to index this grid. A simple <code>Point</code> type will do.</p>
+<pre style="background-color:#2b303b;">
+<code class="language-rust" data-lang="rust"><span style="color:#65737e;">/// A point used to index a 2D grid.
+</span><span style="color:#c0c5ce;">#[</span><span style="color:#bf616a;">derive</span><span style="color:#c0c5ce;">(Clone, Copy)]
+</span><span style="color:#b48ead;">pub struct </span><span style="color:#c0c5ce;">Point {
+    </span><span style="color:#b48ead;">pub </span><span style="color:#bf616a;">x</span><span style="color:#c0c5ce;">: </span><span style="color:#b48ead;">usize</span><span style="color:#c0c5ce;">,
+    </span><span style="color:#b48ead;">pub </span><span style="color:#bf616a;">y</span><span style="color:#c0c5ce;">: </span><span style="color:#b48ead;">usize</span><span style="color:#c0c5ce;">,
+}
+</span></code></pre>
+<p>Consumers of our grid library can use <code>Point</code> to refer to elements in the grid, for getting and setting. Speaking of setting, in my particular use-case, the value stored at each point in the grid can be calculated completely independently of each other. Calculating each pixel in an image is an embarrassingly-parallel problem. So, let's make the setter parallel. Don't worry, I promise Rust has a library to make this trivial. &quot;Fearless concurrency&quot; is a selling point of Rust for a reason.</p>
+<pre style="background-color:#2b303b;">
+<code class="language-rust" data-lang="rust"><span style="color:#65737e;">/// A container which stores elements at 2D points.
+</span><span style="color:#b48ead;">pub trait </span><span style="color:#c0c5ce;">Gridlike&lt;T&gt; {
+    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">width</span><span style="color:#c0c5ce;">(&amp;</span><span style="color:#bf616a;">self</span><span style="color:#c0c5ce;">) -&gt; </span><span style="color:#b48ead;">usize</span><span style="color:#c0c5ce;">;
+    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">height</span><span style="color:#c0c5ce;">(&amp;</span><span style="color:#bf616a;">self</span><span style="color:#c0c5ce;">) -&gt; </span><span style="color:#b48ead;">usize</span><span style="color:#c0c5ce;">;
+
+    </span><span style="color:#65737e;">/// Get the element at the given point.
+    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">get</span><span style="color:#c0c5ce;">(&amp;</span><span style="color:#bf616a;">self</span><span style="color:#c0c5ce;">, </span><span style="color:#bf616a;">p</span><span style="color:#c0c5ce;">: Point) -&gt; &amp;T;
+
+    </span><span style="color:#65737e;">/// Set all elements of the grid, using a setter function.
+    /// The setter function takes a point and returns the value which should be
+    /// assigned to the grid at that point.
+    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">set_all_parallel</span><span style="color:#c0c5ce;">&lt;F&gt;(&amp;</span><span style="color:#b48ead;">mut </span><span style="color:#bf616a;">self</span><span style="color:#c0c5ce;">, </span><span style="color:#bf616a;">setter</span><span style="color:#c0c5ce;">: F)
+    </span><span style="color:#b48ead;">where
+</span><span style="color:#c0c5ce;">        F: Send + Sync + Fn(Point) -&gt; T,
+        T: Send;
+
+}
+</span></code></pre>
+<p>This is a very minimal API. I could add more methods, like a <code>fn set(&amp;mut self, p: Point, val: T)</code> that sets the element at a particular point. But this is all I needed for my particular use-case (the raytracer). If I ever expand this into a general-purpose crate and publish it, I'll add more methods. But for now, this interface gives us enough to start implementing and benchmarking.</p>
+<h1 id="implementing-grid-with-nested-vecs">Implementing Grid with nested Vecs</h1>
+<p>The obvious choice for implementing this grid is to use a nested 2D <a href="https://doc.rust-lang.org/std/vec/struct.Vec.html">Vec</a>, i.e. a Vec of Vecs. Let's implement that in its own module under <code>vec2d.rs</code>. First, let's define the grid.</p>
+<pre style="background-color:#2b303b;">
+<code class="language-rust" data-lang="rust"><span style="color:#b48ead;">use crate</span><span style="color:#c0c5ce;">::{Gridlike, Point};
+
+</span><span style="color:#b48ead;">pub struct </span><span style="color:#c0c5ce;">Grid&lt;T&gt; {
+    </span><span style="color:#bf616a;">array</span><span style="color:#c0c5ce;">: Vec&lt;Vec&lt;T&gt;&gt;,
+    </span><span style="color:#bf616a;">width</span><span style="color:#c0c5ce;">: </span><span style="color:#b48ead;">usize</span><span style="color:#c0c5ce;">,
+    </span><span style="color:#bf616a;">height</span><span style="color:#c0c5ce;">: </span><span style="color:#b48ead;">usize</span><span style="color:#c0c5ce;">,
+}
+</span></code></pre>
+<p>Straightforward enough! Now, let's make a very simple initializer. In my particular use-case, I didn't really care what the initial value of each point in the grid was, because before anything had the chance to read from the grid, my ray-tracing code would write new values to it. So, let's just write the simplest constructor we can. We'll just fill the grid with whatever default value <code>T::default()</code> provides.</p>
+<pre style="background-color:#2b303b;">
+<code class="language-rust" data-lang="rust"><span style="color:#b48ead;">impl</span><span style="color:#c0c5ce;">&lt;T&gt; Grid&lt;T&gt; {
+    </span><span style="color:#b48ead;">pub fn </span><span style="color:#8fa1b3;">new</span><span style="color:#c0c5ce;">(</span><span style="color:#bf616a;">width</span><span style="color:#c0c5ce;">: </span><span style="color:#b48ead;">usize</span><span style="color:#c0c5ce;">, </span><span style="color:#bf616a;">height</span><span style="color:#c0c5ce;">: </span><span style="color:#b48ead;">usize</span><span style="color:#c0c5ce;">) -&gt; </span><span style="color:#b48ead;">Self
+    where
+</span><span style="color:#c0c5ce;">        T: Default + Copy,
+    {
+        </span><span style="color:#b48ead;">let mut</span><span style="color:#c0c5ce;"> array = Vec::with_capacity(height);
+        </span><span style="color:#b48ead;">for </span><span style="color:#c0c5ce;">_ in </span><span style="color:#d08770;">0</span><span style="color:#c0c5ce;">..height {
+            array.</span><span style="color:#96b5b4;">push</span><span style="color:#c0c5ce;">([T::default()].</span><span style="color:#96b5b4;">repeat</span><span style="color:#c0c5ce;">(width * height));
+        }
+        </span><span style="color:#b48ead;">Self </span><span style="color:#c0c5ce;">{
+            array,
+            width,
+            height,
+        }
+    }
+}
+</span></code></pre>
+<p>OK, so now consumers of this library can initialize the grid. Great! Let's get to the interesting part: implementing the Grid API. The methods are very straightforward, except for <code>set_all_parallel</code>, which gets a little hairy:</p>
+<pre style="background-color:#2b303b;">
+<code class="language-rust" data-lang="rust"><span style="color:#b48ead;">impl</span><span style="color:#c0c5ce;">&lt;T&gt; Gridlike&lt;T&gt; </span><span style="color:#b48ead;">for </span><span style="color:#c0c5ce;">Grid&lt;T&gt; {
+    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">width</span><span style="color:#c0c5ce;">(&amp;</span><span style="color:#bf616a;">self</span><span style="color:#c0c5ce;">) -&gt; </span><span style="color:#b48ead;">usize </span><span style="color:#c0c5ce;">{
+        </span><span style="color:#bf616a;">self</span><span style="color:#c0c5ce;">.width
+    }
+
+    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">height</span><span style="color:#c0c5ce;">(&amp;</span><span style="color:#bf616a;">self</span><span style="color:#c0c5ce;">) -&gt; </span><span style="color:#b48ead;">usize </span><span style="color:#c0c5ce;">{
+        </span><span style="color:#bf616a;">self</span><span style="color:#c0c5ce;">.height
+    }
+
+    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">get</span><span style="color:#c0c5ce;">(&amp;</span><span style="color:#bf616a;">self</span><span style="color:#c0c5ce;">, </span><span style="color:#bf616a;">p</span><span style="color:#c0c5ce;">: Point) -&gt; &amp;T {
+        &amp;</span><span style="color:#bf616a;">self</span><span style="color:#c0c5ce;">.array[p.y][p.x]
+    }
+
+    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">set_all_parallel</span><span style="color:#c0c5ce;">&lt;F&gt;(&amp;</span><span style="color:#b48ead;">mut </span><span style="color:#bf616a;">self</span><span style="color:#c0c5ce;">, </span><span style="color:#bf616a;">setter</span><span style="color:#c0c5ce;">: F)
+    </span><span style="color:#b48ead;">where
+</span><span style="color:#c0c5ce;">        F: Send + Sync + Fn(Point) -&gt; T,
+        T: Send,
+    {
+        </span><span style="color:#b48ead;">use </span><span style="color:#c0c5ce;">rayon::prelude::*;
+        </span><span style="color:#bf616a;">self</span><span style="color:#c0c5ce;">.array.</span><span style="color:#96b5b4;">par_iter_mut</span><span style="color:#c0c5ce;">().</span><span style="color:#96b5b4;">enumerate</span><span style="color:#c0c5ce;">().</span><span style="color:#96b5b4;">for_each</span><span style="color:#c0c5ce;">(|(</span><span style="color:#bf616a;">y</span><span style="color:#c0c5ce;">, </span><span style="color:#bf616a;">row</span><span style="color:#c0c5ce;">)| {
+            </span><span style="color:#b48ead;">for </span><span style="color:#c0c5ce;">(x, item) in row.</span><span style="color:#96b5b4;">iter_mut</span><span style="color:#c0c5ce;">().</span><span style="color:#96b5b4;">enumerate</span><span style="color:#c0c5ce;">() {
+                *item = </span><span style="color:#96b5b4;">setter</span><span style="color:#c0c5ce;">(Point { x, y });
+            }
+        });
+    }
+}
+</span></code></pre>
+<p>The amazing <a href="https://docs.rs/rayon">Rayon</a> crate is one of my favourite things about Rust. Just replace <code>iter()</code> with <code>par_iter()</code> and boom, you're parallelising
+iteration across all available CPU cores. I fell in love with Rust when I realized how easy it was to parallelize my code and know it will work correctly (because Rust won't compile if the iteration isn't safe to parallelize)!</p>
+<p>This was my first attempt at writing a 2D grid. I like that it's simple and (to me) fairly intuitive to understand. The code seemed very fast when I ran it, but then again, &quot;fast&quot; is very subjective. In my day job, I write services that wait on HTTP roundtrips to traverse the planet. So by standards, any code that iterates over some in-memory container is going to be &quot;fast&quot; (to me). The only fair way to judge this implementation's speed is to try writing a different implementation and compare them. How else could I implement this?</p>
+<h1 id="implementing-grid-with-a-single-vec">Implementing Grid with a single Vec</h1>
+<p>I remember reading some old programmer trick from the 80s, when computers were so slow that everyone had to be real fanatics about performance. The trick is basically, never use a 2D array. Instead, use a 1D array, and use some simple math to convert between 2D and 1D representations. Basically, the element stored at index <code>i</code> is <code>(i%width, i/width)</code>.</p>
+<p>Why might this be faster? Well, modern CPUs are much faster at iterating through arrays rather than following pointers, because of &quot;data locality&quot; (see this <a href="https://stackoverflow.com/questions/19064384/arrays-vs-linked-lists-in-terms-of-locality">stack overflow</a> for the basics). The <a href="https://doc.rust-lang.org/std/vec/struct.Vec.html#guarantees">Vec docs</a> define <code>Vec</code> as &quot;a (pointer, capacity, length) triplet. No more, no less.&quot; This means that iterating over <code>Vec&lt;T&gt;</code> will only require following a pointer <em>once</em> (to get to the start of the Vec). But iterating over a <code>Vec&lt;Vec&lt;T&gt;&gt;</code> will require <code>n</code> pointer follows, one for each nested vector, because they're all separate Vecs.</p>
+<p><img src="/grids-1/vec_comparison.jpg" alt="Visualisation of 1d and 2d Vecs" /></p>
+<p>The 1D Vec solution is very similar to the 2D Vec solution, except we need <em>un poquito de</em> math to translate between the 2D representation (which callers use) and the 1D representation (which our implementation uses). You can see this in the <code>get</code> and <code>set</code> methods. Anyway, here's <code>vec1d.rs</code>:</p>
+<pre style="background-color:#2b303b;">
+<code class="language-rust" data-lang="rust"><span style="color:#c0c5ce;">
+</span><span style="color:#b48ead;">pub struct </span><span style="color:#c0c5ce;">Grid&lt;T&gt; {
+    </span><span style="color:#bf616a;">array</span><span style="color:#c0c5ce;">: Vec&lt;T&gt;,
+    </span><span style="color:#bf616a;">width</span><span style="color:#c0c5ce;">: </span><span style="color:#b48ead;">usize</span><span style="color:#c0c5ce;">,
+    </span><span style="color:#bf616a;">height</span><span style="color:#c0c5ce;">: </span><span style="color:#b48ead;">usize</span><span style="color:#c0c5ce;">,
+}
+
+</span><span style="color:#b48ead;">impl</span><span style="color:#c0c5ce;">&lt;T&gt; Grid&lt;T&gt; {
+    </span><span style="color:#b48ead;">pub fn </span><span style="color:#8fa1b3;">new</span><span style="color:#c0c5ce;">(</span><span style="color:#bf616a;">width</span><span style="color:#c0c5ce;">: </span><span style="color:#b48ead;">usize</span><span style="color:#c0c5ce;">, </span><span style="color:#bf616a;">height</span><span style="color:#c0c5ce;">: </span><span style="color:#b48ead;">usize</span><span style="color:#c0c5ce;">) -&gt; </span><span style="color:#b48ead;">Self
+    where
+</span><span style="color:#c0c5ce;">        T: Default + Copy,
+    {
+        </span><span style="color:#b48ead;">Self </span><span style="color:#c0c5ce;">{
+            array: [T::default()].</span><span style="color:#96b5b4;">repeat</span><span style="color:#c0c5ce;">(width * height),
+            width,
+            height,
+        }
+    }
+}
+
+</span><span style="color:#b48ead;">impl</span><span style="color:#c0c5ce;">&lt;T&gt; Gridlike&lt;T&gt; </span><span style="color:#b48ead;">for </span><span style="color:#c0c5ce;">Grid&lt;T&gt; {
+    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">width</span><span style="color:#c0c5ce;">(&amp;</span><span style="color:#bf616a;">self</span><span style="color:#c0c5ce;">) -&gt; </span><span style="color:#b48ead;">usize </span><span style="color:#c0c5ce;">{
+        </span><span style="color:#bf616a;">self</span><span style="color:#c0c5ce;">.width
+    }
+
+    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">height</span><span style="color:#c0c5ce;">(&amp;</span><span style="color:#bf616a;">self</span><span style="color:#c0c5ce;">) -&gt; </span><span style="color:#b48ead;">usize </span><span style="color:#c0c5ce;">{
+        </span><span style="color:#bf616a;">self</span><span style="color:#c0c5ce;">.height
+    }
+
+    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">get</span><span style="color:#c0c5ce;">(&amp;</span><span style="color:#bf616a;">self</span><span style="color:#c0c5ce;">, </span><span style="color:#bf616a;">p</span><span style="color:#c0c5ce;">: Point) -&gt; &amp;T {
+        &amp;</span><span style="color:#bf616a;">self</span><span style="color:#c0c5ce;">.array[p.y * </span><span style="color:#bf616a;">self</span><span style="color:#c0c5ce;">.width + p.x]
+    }
+
+    </span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">set_all_parallel</span><span style="color:#c0c5ce;">&lt;F&gt;(&amp;</span><span style="color:#b48ead;">mut </span><span style="color:#bf616a;">self</span><span style="color:#c0c5ce;">, </span><span style="color:#bf616a;">setter</span><span style="color:#c0c5ce;">: F)
+    </span><span style="color:#b48ead;">where
+</span><span style="color:#c0c5ce;">        F: Send + Sync + Fn(Point) -&gt; T,
+        T: Send,
+    {
+        </span><span style="color:#b48ead;">use </span><span style="color:#c0c5ce;">rayon::prelude::*;
+        </span><span style="color:#b48ead;">let</span><span style="color:#c0c5ce;"> width = </span><span style="color:#bf616a;">self</span><span style="color:#c0c5ce;">.width;
+        </span><span style="color:#bf616a;">self</span><span style="color:#c0c5ce;">.array.</span><span style="color:#96b5b4;">par_iter_mut</span><span style="color:#c0c5ce;">().</span><span style="color:#96b5b4;">enumerate</span><span style="color:#c0c5ce;">().</span><span style="color:#96b5b4;">for_each</span><span style="color:#c0c5ce;">(|(</span><span style="color:#bf616a;">i</span><span style="color:#c0c5ce;">, </span><span style="color:#bf616a;">item</span><span style="color:#c0c5ce;">)| {
+            *item = </span><span style="color:#96b5b4;">setter</span><span style="color:#c0c5ce;">(Point {
+                x: i % width,
+                y: i / width,
+            });
+        });
+    }
+}
+</span></code></pre><h1 id="benchmarking-the-grid-implementations">Benchmarking the Grid implementations</h1>
+<p>OK, now that we have two implementations, it's time to compare them. Rust has built-in support for benchmarks, which is really lovely. If you want extra features, like nice graphs, or automatically running benchmarks multiple times and constructing a statistical model of the results, <a href="https://docs.rs/criterion">Criterion</a> is a really easy crate for that. Also, it generates nice graphs. Fuck I love a nice graph. So do product managers. If you ever have the <del>misfortune</del> good luck to work with a product manager, remember: your work doesn't mean anything unless you can show them a graph of before and after the change.</p>
+<p>We'll benchmark three different scenarios for our Grid implementations:</p>
+<ol>
+<li>Setting all elements</li>
+<li>Getting random points</li>
+<li>Iterating over points</li>
+</ol>
+<p>Criterion lets us run a benchmark with several different sample inputs, and across several different implementations. For example, the <code>set_grid</code> benchmark will use two different inputs, which correspond to mathematical difficulty. And it will use two different implementations of Grid, i.e. our <code>vec1d::Grid</code> and <code>vec2d::Grid</code>.</p>
+<pre style="background-color:#2b303b;">
+<code class="language-rust" data-lang="rust"><span style="color:#b48ead;">use </span><span style="color:#c0c5ce;">criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+</span><span style="color:#b48ead;">use </span><span style="color:#c0c5ce;">rand::Rng;
+</span><span style="color:#b48ead;">const </span><span style="color:#d08770;">WIDTH</span><span style="color:#c0c5ce;">: </span><span style="color:#b48ead;">usize </span><span style="color:#c0c5ce;">= </span><span style="color:#d08770;">300</span><span style="color:#c0c5ce;">;
+</span><span style="color:#b48ead;">const </span><span style="color:#d08770;">HEIGHT</span><span style="color:#c0c5ce;">: </span><span style="color:#b48ead;">usize </span><span style="color:#c0c5ce;">= </span><span style="color:#d08770;">200</span><span style="color:#c0c5ce;">;
+
+</span><span style="color:#65737e;">/// Some hard math operation to apply to the grid.
+</span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">operation</span><span style="color:#c0c5ce;">(</span><span style="color:#bf616a;">difficulty</span><span style="color:#c0c5ce;">: </span><span style="color:#b48ead;">usize</span><span style="color:#c0c5ce;">) -&gt; impl Fn(Point) -&gt; </span><span style="color:#b48ead;">usize </span><span style="color:#c0c5ce;">{
+    </span><span style="color:#b48ead;">let</span><span style="color:#c0c5ce;"> f = </span><span style="color:#96b5b4;">black_box</span><span style="color:#c0c5ce;">(|</span><span style="color:#bf616a;">difficulty</span><span style="color:#c0c5ce;">| {
+        </span><span style="color:#b48ead;">move </span><span style="color:#c0c5ce;">|Point { </span><span style="color:#b48ead;">mut</span><span style="color:#c0c5ce;"> x, </span><span style="color:#b48ead;">mut</span><span style="color:#c0c5ce;"> y }| {
+            </span><span style="color:#b48ead;">for </span><span style="color:#c0c5ce;">_ in </span><span style="color:#d08770;">0</span><span style="color:#c0c5ce;">..difficulty {
+                y = x + y;
+                x = </span><span style="color:#b48ead;">if</span><span style="color:#c0c5ce;"> difficulty &gt;= </span><span style="color:#d08770;">1 </span><span style="color:#c0c5ce;">&amp;&amp; x % </span><span style="color:#d08770;">2 </span><span style="color:#c0c5ce;">== </span><span style="color:#d08770;">0 </span><span style="color:#c0c5ce;">{
+                    x.</span><span style="color:#96b5b4;">pow</span><span style="color:#c0c5ce;">(</span><span style="color:#d08770;">2</span><span style="color:#c0c5ce;">) + y
+                } </span><span style="color:#b48ead;">else </span><span style="color:#c0c5ce;">{
+                    x + y
+                }
+            }
+            x + y
+        }
+    });
+    </span><span style="color:#96b5b4;">f</span><span style="color:#c0c5ce;">(difficulty)
+}
+
+</span><span style="color:#65737e;">/// Benchmark the `set_all_parallel` method of Gridlike.
+</span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">set_grid_bench</span><span style="color:#c0c5ce;">(</span><span style="color:#bf616a;">c</span><span style="color:#c0c5ce;">: &amp;</span><span style="color:#b48ead;">mut</span><span style="color:#c0c5ce;"> Criterion) {
+    </span><span style="color:#b48ead;">let mut</span><span style="color:#c0c5ce;"> group = c.</span><span style="color:#96b5b4;">benchmark_group</span><span style="color:#c0c5ce;">(&quot;</span><span style="color:#a3be8c;">Set</span><span style="color:#c0c5ce;">&quot;);
+    </span><span style="color:#b48ead;">let</span><span style="color:#c0c5ce;"> difficulties = vec![</span><span style="color:#d08770;">1</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">5</span><span style="color:#c0c5ce;">];
+    </span><span style="color:#b48ead;">for</span><span style="color:#c0c5ce;"> d in difficulties {
+        group.</span><span style="color:#96b5b4;">bench_with_input</span><span style="color:#c0c5ce;">(BenchmarkId::new(&quot;</span><span style="color:#a3be8c;">1D Vec</span><span style="color:#c0c5ce;">&quot;, d), &amp;d, |</span><span style="color:#bf616a;">b</span><span style="color:#c0c5ce;">, </span><span style="color:#bf616a;">d</span><span style="color:#c0c5ce;">| {
+            </span><span style="color:#b48ead;">let mut</span><span style="color:#c0c5ce;"> g = vec1d::Grid::new(</span><span style="color:#d08770;">WIDTH</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">HEIGHT</span><span style="color:#c0c5ce;">);
+            b.</span><span style="color:#96b5b4;">iter</span><span style="color:#c0c5ce;">(|| g.</span><span style="color:#96b5b4;">set_all_parallel</span><span style="color:#c0c5ce;">(</span><span style="color:#96b5b4;">operation</span><span style="color:#c0c5ce;">(d.</span><span style="color:#96b5b4;">clone</span><span style="color:#c0c5ce;">())));
+        });
+        group.</span><span style="color:#96b5b4;">bench_with_input</span><span style="color:#c0c5ce;">(BenchmarkId::new(&quot;</span><span style="color:#a3be8c;">2D Vec</span><span style="color:#c0c5ce;">&quot;, d), &amp;d, |</span><span style="color:#bf616a;">b</span><span style="color:#c0c5ce;">, </span><span style="color:#bf616a;">d</span><span style="color:#c0c5ce;">| {
+            </span><span style="color:#b48ead;">let mut</span><span style="color:#c0c5ce;"> g = vec2d::Grid::new(</span><span style="color:#d08770;">WIDTH</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">HEIGHT</span><span style="color:#c0c5ce;">);
+            b.</span><span style="color:#96b5b4;">iter</span><span style="color:#c0c5ce;">(|| g.</span><span style="color:#96b5b4;">set_all_parallel</span><span style="color:#c0c5ce;">(</span><span style="color:#96b5b4;">operation</span><span style="color:#c0c5ce;">(d.</span><span style="color:#96b5b4;">clone</span><span style="color:#c0c5ce;">())));
+        });
+    }
+    group.</span><span style="color:#96b5b4;">finish</span><span style="color:#c0c5ce;">();
+}
+</span><span style="color:#65737e;">/// Benchmark the `get` method of Gridlike with random access.
+</span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">get_grid_bench_random</span><span style="color:#c0c5ce;">(</span><span style="color:#bf616a;">c</span><span style="color:#c0c5ce;">: &amp;</span><span style="color:#b48ead;">mut</span><span style="color:#c0c5ce;"> Criterion) {
+    </span><span style="color:#b48ead;">let mut</span><span style="color:#c0c5ce;"> group = c.</span><span style="color:#96b5b4;">benchmark_group</span><span style="color:#c0c5ce;">(&quot;</span><span style="color:#a3be8c;">GetRandom</span><span style="color:#c0c5ce;">&quot;);
+    </span><span style="color:#b48ead;">let </span><span style="color:#8fa1b3;">point </span><span style="color:#c0c5ce;">= || Point {
+        x: rand::thread_rng().</span><span style="color:#96b5b4;">gen_range</span><span style="color:#c0c5ce;">(</span><span style="color:#d08770;">0</span><span style="color:#c0c5ce;">..</span><span style="color:#d08770;">WIDTH</span><span style="color:#c0c5ce;">),
+        y: rand::thread_rng().</span><span style="color:#96b5b4;">gen_range</span><span style="color:#c0c5ce;">(</span><span style="color:#d08770;">0</span><span style="color:#c0c5ce;">..</span><span style="color:#d08770;">HEIGHT</span><span style="color:#c0c5ce;">),
+    };
+    </span><span style="color:#b48ead;">for</span><span style="color:#c0c5ce;"> d in &amp;[</span><span style="color:#d08770;">1</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">10</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">100</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">1000</span><span style="color:#c0c5ce;">] {
+        group.</span><span style="color:#96b5b4;">bench_with_input</span><span style="color:#c0c5ce;">(BenchmarkId::new(&quot;</span><span style="color:#a3be8c;">1D Vec</span><span style="color:#c0c5ce;">&quot;, d), &amp;d, |</span><span style="color:#bf616a;">b</span><span style="color:#c0c5ce;">, </span><span style="color:#bf616a;">d</span><span style="color:#c0c5ce;">| {
+            </span><span style="color:#b48ead;">let mut</span><span style="color:#c0c5ce;"> g = vec1d::Grid::new(</span><span style="color:#d08770;">WIDTH</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">HEIGHT</span><span style="color:#c0c5ce;">);
+            g.</span><span style="color:#96b5b4;">set_all_parallel</span><span style="color:#c0c5ce;">(</span><span style="color:#96b5b4;">operation</span><span style="color:#c0c5ce;">(</span><span style="color:#d08770;">1</span><span style="color:#c0c5ce;">));
+            b.</span><span style="color:#96b5b4;">iter</span><span style="color:#c0c5ce;">(|| {
+                </span><span style="color:#b48ead;">for </span><span style="color:#c0c5ce;">_ in </span><span style="color:#d08770;">0</span><span style="color:#c0c5ce;">..**d {
+                    </span><span style="color:#96b5b4;">black_box</span><span style="color:#c0c5ce;">(g.</span><span style="color:#96b5b4;">get</span><span style="color:#c0c5ce;">(</span><span style="color:#96b5b4;">point</span><span style="color:#c0c5ce;">()));
+                }
+            });
+        });
+        group.</span><span style="color:#96b5b4;">bench_with_input</span><span style="color:#c0c5ce;">(BenchmarkId::new(&quot;</span><span style="color:#a3be8c;">2D Vec</span><span style="color:#c0c5ce;">&quot;, d), &amp;d, |</span><span style="color:#bf616a;">b</span><span style="color:#c0c5ce;">, </span><span style="color:#bf616a;">d</span><span style="color:#c0c5ce;">| {
+            </span><span style="color:#b48ead;">let mut</span><span style="color:#c0c5ce;"> g = vec2d::Grid::new(</span><span style="color:#d08770;">WIDTH</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">HEIGHT</span><span style="color:#c0c5ce;">);
+            g.</span><span style="color:#96b5b4;">set_all_parallel</span><span style="color:#c0c5ce;">(</span><span style="color:#96b5b4;">operation</span><span style="color:#c0c5ce;">(</span><span style="color:#d08770;">1</span><span style="color:#c0c5ce;">));
+            b.</span><span style="color:#96b5b4;">iter</span><span style="color:#c0c5ce;">(|| {
+                </span><span style="color:#b48ead;">for </span><span style="color:#c0c5ce;">_ in </span><span style="color:#d08770;">0</span><span style="color:#c0c5ce;">..**d {
+                    </span><span style="color:#96b5b4;">black_box</span><span style="color:#c0c5ce;">(g.</span><span style="color:#96b5b4;">get</span><span style="color:#c0c5ce;">(</span><span style="color:#96b5b4;">point</span><span style="color:#c0c5ce;">()));
+                }
+            });
+        });
+    }
+    group.</span><span style="color:#96b5b4;">finish</span><span style="color:#c0c5ce;">();
+}
+</span><span style="color:#65737e;">/// Benchmark the `get` method of Gridlike, accessing elements in a predictable order.
+</span><span style="color:#b48ead;">fn </span><span style="color:#8fa1b3;">get_grid_bench_order</span><span style="color:#c0c5ce;">(</span><span style="color:#bf616a;">c</span><span style="color:#c0c5ce;">: &amp;</span><span style="color:#b48ead;">mut</span><span style="color:#c0c5ce;"> Criterion) {
+    </span><span style="color:#b48ead;">let mut</span><span style="color:#c0c5ce;"> group = c.</span><span style="color:#96b5b4;">benchmark_group</span><span style="color:#c0c5ce;">(&quot;</span><span style="color:#a3be8c;">GetOrder</span><span style="color:#c0c5ce;">&quot;);
+    </span><span style="color:#b48ead;">for</span><span style="color:#c0c5ce;"> d in &amp;[</span><span style="color:#d08770;">1</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">50</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">100</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">200</span><span style="color:#c0c5ce;">] {
+        group.</span><span style="color:#96b5b4;">bench_with_input</span><span style="color:#c0c5ce;">(BenchmarkId::new(&quot;</span><span style="color:#a3be8c;">1D Vec</span><span style="color:#c0c5ce;">&quot;, d), &amp;d, |</span><span style="color:#bf616a;">b</span><span style="color:#c0c5ce;">, </span><span style="color:#bf616a;">d</span><span style="color:#c0c5ce;">| {
+            </span><span style="color:#b48ead;">let mut</span><span style="color:#c0c5ce;"> g = vec1d::Grid::new(</span><span style="color:#d08770;">WIDTH</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">HEIGHT</span><span style="color:#c0c5ce;">);
+            g.</span><span style="color:#96b5b4;">set_all_parallel</span><span style="color:#c0c5ce;">(</span><span style="color:#96b5b4;">operation</span><span style="color:#c0c5ce;">(</span><span style="color:#d08770;">1</span><span style="color:#c0c5ce;">));
+            b.</span><span style="color:#96b5b4;">iter</span><span style="color:#c0c5ce;">(|| {
+                </span><span style="color:#b48ead;">for</span><span style="color:#c0c5ce;"> x in </span><span style="color:#d08770;">0</span><span style="color:#c0c5ce;">..**d {
+                    </span><span style="color:#b48ead;">for</span><span style="color:#c0c5ce;"> y in </span><span style="color:#d08770;">0</span><span style="color:#c0c5ce;">..**d {
+                        </span><span style="color:#96b5b4;">black_box</span><span style="color:#c0c5ce;">(g.</span><span style="color:#96b5b4;">get</span><span style="color:#c0c5ce;">(Point { x, y }));
+                    }
+                }
+            });
+        });
+        group.</span><span style="color:#96b5b4;">bench_with_input</span><span style="color:#c0c5ce;">(BenchmarkId::new(&quot;</span><span style="color:#a3be8c;">2D Vec</span><span style="color:#c0c5ce;">&quot;, d), &amp;d, |</span><span style="color:#bf616a;">b</span><span style="color:#c0c5ce;">, </span><span style="color:#bf616a;">d</span><span style="color:#c0c5ce;">| {
+            </span><span style="color:#b48ead;">let mut</span><span style="color:#c0c5ce;"> g = vec2d::Grid::new(</span><span style="color:#d08770;">WIDTH</span><span style="color:#c0c5ce;">, </span><span style="color:#d08770;">HEIGHT</span><span style="color:#c0c5ce;">);
+            g.</span><span style="color:#96b5b4;">set_all_parallel</span><span style="color:#c0c5ce;">(</span><span style="color:#96b5b4;">operation</span><span style="color:#c0c5ce;">(</span><span style="color:#d08770;">1</span><span style="color:#c0c5ce;">));
+            b.</span><span style="color:#96b5b4;">iter</span><span style="color:#c0c5ce;">(|| {
+                </span><span style="color:#b48ead;">for</span><span style="color:#c0c5ce;"> x in </span><span style="color:#d08770;">0</span><span style="color:#c0c5ce;">..**d {
+                    </span><span style="color:#b48ead;">for</span><span style="color:#c0c5ce;"> y in </span><span style="color:#d08770;">0</span><span style="color:#c0c5ce;">..**d {
+                        </span><span style="color:#96b5b4;">black_box</span><span style="color:#c0c5ce;">(g.</span><span style="color:#96b5b4;">get</span><span style="color:#c0c5ce;">(Point { x, y }));
+                    }
+                }
+            });
+        });
+    }
+    group.</span><span style="color:#96b5b4;">finish</span><span style="color:#c0c5ce;">();
+}
+
+criterion_group!(
+    benches,
+    set_grid_bench,
+    get_grid_bench_order,
+    get_grid_bench_random
+);
+criterion_main!(benches);
+</span></code></pre>
+<p>You can run these benchmarks with <code>cargo bench</code>. Note the use of <a href="https://docs.rs/criterion/0.3.4/criterion/fn.black_box.html">black_box</a> to stop the compiler from optimizing away all our code. Sometimes the compiler decides that, because ultimately computing all this data doesn't have any side-effect (like printing a number to the screen, or sending it in a HTTP request), it doesn't even need to do the work at all. That's awesome for making your production binaries faster, but it's really annoying when you're trying to benchmark code.</p>
+<blockquote>
+<p>Technically Criterion has its own subcommand, <code>cargo criterion</code>, which is supposed to be better,but when I try to run that I always run into <a href="https://github.com/bheisler/criterion.rs/issues/466">this panic</a> and I don't know how to fix it yet. But normal <code>cargo bench</code> works fine so I'm not very invested in debugging at this point.</p>
+</blockquote>
+<p>Well, I ran the benchmarks on my Macbook Pro, which has an Intel Core i7-9750H CPU, and here's the results.</p>
+<p><img src="/grids-1/getrandom.png" alt="Benchmark GetRandom" />
+<img src="/grids-1/getorder.png" alt="Benchmark GetOrder" />
+<img src="/grids-1/set.png" alt="Benchmark Set" /></p>
+<p>Wow. Seems like those 80s programmers really did know something. Storing the elements in 1D is <em>way</em> faster than storing them in 2D, even though the two implementations have the same <a href="https://justin.abrah.ms/computer-science/big-o-notation-explained.html">Big O complexity</a>. I'm glad we benchmarked it.</p>
+<p>Note: Different CPU architectures optimize things differently! You can always clone this repo and run the benchmarks on your own machine. If this was a work project, I would make sure to benchmark this on the same machine that will run the code in production. The results might be very different!</p>
+<p>Oh, and here's a bonus graph comparing the &quot;GetOrder&quot; benchmark, run for both 1D and 2D Vec implementations, getting the first 1, 50, 100 or 200 elements from the grid. I'm only including it here to show you how cool Criterion is. Seriously, this crate can fit so many graph visualisations in it.</p>
+<p><img src="/grids-1/getorder_violin.png" alt="Benchmark GetOrder violin" /></p>
+<p>OK, so we've established that for all workloads, 1D Vec is faster than 2D Vec. But... can we do even better? Why are we even storing these elements in a Vec, which allocates memory on the heap? What if we could store them all in the stack, and avoid that allocation? In <a href="/grids-2">part two</a> of this series, we'll use <a href="https://blog.rust-lang.org/2021/02/26/const-generics-mvp-beta">const generics</a> to create a generic-sized array for representing the grid.</p>
+<p>Thanks for reading! If you have any questions or suggestions, please let me know on <a href="https://twitter.com/adam_chal">twitter</a> or via <a href="mailto:adam.s.chalmers@gmail.com">email</a>. The code is <a href="https://github.com/adamchalmers/const_generic_grid">on GitHub</a> and if you have suggestions for improving it, feel free to open a PR. Thanks!</p>
+
+    </div>
+
+    
+    <div class="article-info">
+        
+        <div class="article-date">22 March 2021</div>
+        
+        <div class="article-taxonomies">
+            
+            
+                <ul class="article-tags">
+                    
+                    <li><a href="https://blog.adamchalmers.com/tags/rust/">#rust</a></li>
+                    
+                    <li><a href="https://blog.adamchalmers.com/tags/programming/">#programming</a></li>
+                    
+                </ul>
+            
+        </div>
+    </div>
+
+</article>
+
+
+        </main>
+        <footer>
+            <p>
+                © A Less Mad March 2021<br>
+                Powered by <a target="_blank" href="https://getzola.com/">Zola</a>, Theme <a target="_blank"
+                    href="https://github.com/zbrox/anpu">Anpu</a>.
+            </p>
+            <p>
+                
+                
+            </p>
+        </footer>
+    </div>
+</body>
+
+</html>
