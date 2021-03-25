@@ -49,7 +49,7 @@ fn main() {
 
 At compile-time, rustc examines every time `last` is called, and figures out the right type to substitute for `T`. The first time it's called, `T = &'static str`. The next time, `T = bool`.
 
-Const generics are very similar. But instead of being generic over a _type_, they're generic over a _constant value_, like `1` or `33` or `false`. For example, the type `[bool; N]` is an array of `N` booleans. When the code is compiled, `N` will be replaced with some constant value, and the compiler will generate an array with a specific length like `[bool: 4]`.
+Const generics are very similar. But instead of being generic over a _type_, they're generic over a _constant value_, like `1` or `33` or `false`. For example, the type `[bool; N]` is an array of `N` booleans. When the code is compiled, `N` will be replaced with some constant value, and the compiler will generate an array with a specific length like `[bool; 4]`.
 
 Just like how the concrete type `T` in `last<T>` had to be known at compile-time, the concrete value for `N` has to be known at compile-time. In Rust, we call any value that can be calculated at compile-time a _constant_. Hence, _const generics_. Let's look at an example:
 
