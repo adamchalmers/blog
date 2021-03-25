@@ -6,7 +6,7 @@ date = 2021-03-22
 tags = ["rust", "programming"]
 +++
 
-While doing some graphics programming in Rust, I needed to write an efficient type for reading and writing data in a 2D grid. In this post, we'll compare two different implementations of a grid, dipping our toes into data parallelism with Rayon and benchmarking with Criterion.
+While making a [raytracer in Rust](https://github.com/adamchalmers/raytracer), I needed an efficient way to store the pixels of a 2D image. In this post, we'll compare two different implementations of a 2D grid datatype, dipping our toes into data parallelism with Rayon and benchmarking with Criterion.
 
 <!-- more -->
 
@@ -114,7 +114,7 @@ impl<T> Gridlike<T> for Grid<T> {
 The amazing [Rayon](https://docs.rs/rayon) crate is one of my favourite things about Rust. Just replace `iter()` with `par_iter()` and boom, you're parallelising
 iteration across all available CPU cores. I fell in love with Rust when I realized how easy it was to parallelize my code and know it will work correctly (because Rust won't compile if the iteration isn't safe to parallelize)!
 
-This was my first attempt at writing a 2D grid. I like that it's simple and (to me) fairly intuitive to understand. The code seemed very fast when I ran it, but then again, "fast" is very subjective. In my day job, I write services that wait on HTTP roundtrips to traverse the planet. So by standards, any code that iterates over some in-memory container is going to be "fast" (to me). The only fair way to judge this implementation's speed is to try writing a different implementation and compare them. How else could I implement this?
+This was my first attempt at writing a 2D grid. I like that it's simple and (to me) fairly intuitive to understand. The code seemed very fast when I ran it, but then again, "fast" is very subjective. In my day job, I write services that wait on HTTP roundtrips to traverse the planet. So any code that iterates over some in-memory container is going to be "fast" to me. The only fair way to judge this implementation's speed is to try writing a different implementation and compare them. How else could I implement this?
 
 # Implementing Grid with a single Vec
 
@@ -318,3 +318,5 @@ Oh, and here's a bonus graph comparing the "GetOrder" benchmark, run for both 1D
 OK, so we've established that for all workloads, 1D Vec is faster than 2D Vec. But... can we do even better? Why are we even storing these elements in a Vec, which allocates memory on the heap? What if we could store them all in the stack, and avoid that allocation? In [part two](/grids-2) of this series, we'll use [const generics](https://blog.rust-lang.org/2021/02/26/const-generics-mvp-beta) to create a generic-sized array for representing the grid.
 
 Thanks for reading! If you have any questions or suggestions, please let me know on [twitter](https://twitter.com/adam_chal) or via [email](mailto:adam.s.chalmers@gmail.com). The code is [on GitHub](https://github.com/adamchalmers/const_generic_grid) and if you have suggestions for improving it, feel free to open a PR. Thanks!
+
+_Thanks to Steve Klabnik and Nick Vollmar for feedback_

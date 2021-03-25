@@ -223,7 +223,7 @@ where
 
 The one weird thing about this is the where clause, `where [(); W * H]: Sized`. Initially I didn't include that, but then the compiler complained about an "unconstrained generic constant". I [talked to a Rust dev on twitter](https://twitter.com/ekuber/status/1372017934910943237), and he said that the where clause won't be necessary when this const generic arithmetic feature is finished. It's a bit weird, but hey, the feature is still under development. I'm impressed that it works without panicking, I really don't mind putting an unnecessary where clause in while the Rust team polishes this feature.
 
-> Aside: the Rust core team is so helpful. If I tweet a question to the [@rustlang](twitter.com/rustlang) account, they often retweet it so that it gets seen by a dev who can answer. The [Rust discord](https://discord.com/invite/rust-lang) is also really helpful. Don't be afraid to ask for help! Everyone is pretty friendly.
+> Aside: the Rust core team is so helpful. If I tweet a question to the [@rustlang](twitter.com/rustlang) account, they often retweet it so that it gets seen by a dev who can answer. The [Rust discord](https://discord.com/invite/rust-lang) is also really helpful. Don't be afraid to ask for help! Folks there are friendly and will point you in the right direction.
 
 Now that we have 1D and 2D array-based implementations, let's benchmark them.
 
@@ -250,3 +250,5 @@ It's also entirely possible that I've missed some subtlety of benchmarking, and 
 
 
 Thanks for reading! I hope you enjoyed learning about const generics, Nightly Rust and Criterion—I know I did. If you have any questions or suggestions, please let me know on [twitter](https://twitter.com/adam_chal) or via [email](mailto:adam.s.chalmers@gmail.com). The code is [on GitHub](https://github.com/adamchalmers/const_generic_grid) and if you have suggestions for improving it, feel free to open a PR. Thanks!
+
+_Thanks to Nick Vollmar for feedback_
