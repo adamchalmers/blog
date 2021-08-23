@@ -1,12 +1,12 @@
 +++
-title = "What is Pin? What is Unpin?"
+title = "Pin and Unpin in Rust"
 date = 2021-08-23
 
 [taxonomies]
 tags = ["rust", "programming", "async", "pin"]
 +++
 
-Using async Rust libraries is really easy. It's just like using normal Rust code, with a little `async` or `.await` here and there. But sometimes, if you're writing your own async Rust library, you need to actually go beneath the abstractions of async/await syntax and actually learn how Rust Futures work. The first time I tried this, I got really confused by arcane, esoteric syntax like `T: ?Unpin` and `Pin<&mut Self>`. I had never seen these types before, and I couldn't understand what they were doing. This is my attempt to write the explainer I wish I could have read back then. In this post, we're gonna learn Pin and Unpin mean, why they're necessary, and how to use them for writing async libraries.
+Using async Rust libraries is really easy. It's just like using normal Rust code, with a little `async` or `.await` here and there. But writing your own async libraries can be hard. The first time I tried this, I got really confused by arcane, esoteric syntax like `T: ?Unpin` and `Pin<&mut Self>`. I had never seen these types before, and I didn't understand what they were doing. Now that I understand them, I've written the explainer I wish I could have read back then. In this post, we're gonna learn Pin and Unpin mean, why they're necessary, and how to use them for writing async libraries.
 
 <!-- more -->
 
