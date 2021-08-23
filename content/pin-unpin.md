@@ -1,7 +1,6 @@
 +++
 title = "What is Pin? What is Unpin?"
 date = 2021-08-23
-draft = true
 
 [taxonomies]
 tags = ["rust", "programming", "async", "pin"]
