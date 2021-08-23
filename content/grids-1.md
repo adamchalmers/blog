@@ -3,7 +3,7 @@ title = "Grids in Rust, part 1: nested vs. flat Vecs"
 date = 2021-03-22
 
 [taxonomies]
-tags = ["rust", "programming"]
+tags = ["rust", "programming", "benchmarking", "rayon"]
 +++
 
 While making a [raytracer in Rust](https://github.com/adamchalmers/raytracer), I needed an efficient way to store the pixels of a 2D image. In this post, we'll compare two different implementations of a 2D grid datatype, dipping our toes into data parallelism with Rayon and benchmarking with Criterion.

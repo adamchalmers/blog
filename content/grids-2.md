@@ -3,7 +3,7 @@ title = "Grids in Rust, part 2: const generics"
 date = 2021-03-24
 
 [taxonomies]
-tags = ["rust", "programming"]
+tags = ["rust", "programming", "benchmarking", "rayon", "const-generics"]
 +++
 
 In [part one](/grids-1), we defined a Grid trait and implemented it using 1D and 2D vectors. Benchmarks revealed that a 1D vector was a better choice than a nested 2D vector. In this post, we'll write a new implementation that uses arrays instead of Vec. This should be faster!
