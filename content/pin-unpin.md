@@ -1,16 +1,22 @@
 +++
-title = "Pin and Unpin in Rust"
+title = "What do Pin and Unpin do for Rust?"
 date = 2021-08-23
 
 [taxonomies]
 tags = ["rust", "programming", "async", "pin"]
 +++
 
-Using async Rust libraries is really easy. It's just like using normal Rust code, with a little `async` or `.await` here and there. But writing your own async libraries can be hard. The first time I tried this, I got really confused by arcane, esoteric syntax like `T: ?Unpin` and `Pin<&mut Self>`. I had never seen these types before, and I didn't understand what they were doing. Now that I understand them, I've written the explainer I wish I could have read back then. In this post, we're gonna learn Pin and Unpin mean, why they're necessary, and how to use them for writing async libraries.
+Using async Rust libraries is really easy. It's just like using normal Rust code, with a little `async` or `.await` here and there. But writing your own async libraries can be hard. The first time I tried this, I got really confused by arcane, esoteric syntax like `T: ?Unpin` and `Pin<&mut Self>`. I had never seen these types before, and I didn't understand what they were doing. Now that I understand them, I've written the explainer I wish I could have read back then. In this post, we're gonna learn
+
+ * What Futures are
+ * What self-referential types are
+ * Why you couldn't use them in safe Rust
+ * How Pin and Unpin make them safe
+ * How to use this to write tricky code, e.g. futures that contain other nested futures
 
 <!-- more -->
 
-# Motivation: let's write a nested Future!
+# What are Futures?
 
 A few years ago, I needed to write some code which would take some async function, run it and collect some metrics about it, e.g. how long it took to resolve. I wanted to write a type `TimedWrapper` that would work like this:
 
@@ -56,7 +62,11 @@ impl Future for RandFuture {
 }
 ```
 
-Not too hard! I think we're ready to implement `TimedWrapper`. Let's start by defining the type.
+Not too hard! I think we're ready to implement `TimedWrapper`.
+
+# Trying and failing to use nested Futures
+
+Let's start by defining the type.
 
 ```rust
 pub struct TimedWrapper<Fut: Future> {
@@ -111,9 +121,9 @@ Well, we know that methods have a "receiver", which is some way it can access `s
 1. What is `Pin`?
 2. If I have a `T` value, how do I get a `Pin<&mut T>`?
 
-The rest of this post is going to be answering those questions. I'll explain a problem you might face when writing Rust data structures, and how the `Pin` type solves it.
+The rest of this post is going to be answering those questions. I'll explain some problems in Rust that could lead to unsafe code, and why Pin safely solves them.
 
-# Why does Pin exist?
+# Self-reference is unsafe
 
 Pin exists to solve a very specific problem: self-referential datatypes, i.e. data structures which have pointers into themselves. For example, a binary search tree is has self-referential pointers, because nodes have references to other nodes in the same structure.
 
@@ -126,6 +136,8 @@ At first, all is well. The `pointer` field points to the `val` field in memory a
 ![Moving invalidates the pointer](/pin-unpin/node_diagram2.jpg)
 
 When we move it, the `pointer` field doesn't change its value. It's still pointing at address A, which now doesn't have a valid i32. The data that was there was moved to address B, but the pointer wasn't updated! So now the pointer is invalid. This is bad -- at best, invalid pointers cause crashes, at worst they cause hackable vulnerabilities. We only want to allow memory-unsafe behaviour in `unsafe` blocks, and we should be very careful to document this type and tell users to update the pointers after moves.
+
+# Pin and Unpin
 
 To recap, all Rust types fall into two categories.
 
