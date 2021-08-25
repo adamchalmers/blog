@@ -6,12 +6,12 @@ date = 2021-08-23
 tags = ["rust", "programming", "async", "pin"]
 +++
 
-Using async Rust libraries is really easy. It's just like using normal Rust code, with a little `async` or `.await` here and there. But writing your own async libraries can be hard. The first time I tried this, I got really confused by arcane, esoteric syntax like `T: ?Unpin` and `Pin<&mut Self>`. I had never seen these types before, and I didn't understand what they were doing. Now that I understand them, I've written the explainer I wish I could have read back then. In this post, we're gonna learn
+Using async Rust libraries is usually easy. It's just like using normal Rust code, with a little `async` or `.await` here and there. But writing your own async libraries can be hard. The first time I tried this, I got really confused by arcane, esoteric syntax like `T: ?Unpin` and `Pin<&mut Self>`. I had never seen these types before, and I didn't understand what they were doing. Now that I understand them, I've written the explainer I wish I could have read back then. In this post, we're gonna learn
 
  * What Futures are
  * What self-referential types are
- * Why you couldn't use them in safe Rust
- * How Pin/Unpin make them safe
+ * Why they were unsafe
+ * How Pin/Unpin made them safe
  * Using Pin/Unpin to write tricky nested futures
 
 <!-- more -->
