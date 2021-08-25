@@ -11,8 +11,8 @@ Using async Rust libraries is really easy. It's just like using normal Rust code
  * What Futures are
  * What self-referential types are
  * Why you couldn't use them in safe Rust
- * How Pin and Unpin make them safe
- * How to use this to write tricky code, e.g. futures that contain other nested futures
+ * How Pin/Unpin make them safe
+ * Using Pin/Unpin to write tricky nested futures
 
 <!-- more -->
 
