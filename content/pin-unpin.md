@@ -229,13 +229,14 @@ I hope this helped -- if you have any questions, please [ask me on Twitter](http
 
 # References
 
- * Complete TimedWrapper example code on [GitHub](https://github.com/adamchalmers/nested-future-example/blob/master/src/main.rs)
+ * Complete TimedWrapper example code on [GitHub](https://github.com/adamchalmers/nested-future-example/blob/master/src/main.rs)\
+ * This post is based on a [presentation](https://cloudflare.tv/event/2F1zRnM58eBCSHP2VEd74x) I gave at a Rust Bay Area meetup a few weeks ago. My talk starts around 40 minutes in.
  * The [std::pin docs](https://doc.rust-lang.org/stable/std/pin/index.html) have a pretty good explanation of Pin's details.
  * The [Rust async book](https://rust-lang.github.io/async-book/04_pinning/01_chapter.html) explains why Futures often need self-referential pointers.
  * Comprehensive article on [how pin projection actually works](https://fasterthanli.me/articles/pin-and-suffering) by [@fasterthanlime](https://twitter.com/fasterthanlime/)
  * Great article explaining when and how Rust [moves values to different memory addresses](https://hashrust.com/blog/moves-copies-and-clones-in-rust/), by [@HashRust](https://twitter.com/hashrust)
 
-_Thanks to Nick Vollmar for feedback_
+_Thanks to Nick Vollmar for feedback and to [Shepmaster](https://stackoverflow.com/users/155423/shepmaster) for helping me use pin-project when I first needed to write a nested Future_
 
 ---
 
