@@ -75,7 +75,7 @@ pub struct TimedWrapper<Fut: Future> {
 }
 ```
 
-OK, so a `TimedWrapper` is generic over a type `Fut`, which must be a `Future`. And it will store a future of that type as a field. It'll also have a `start` field which will record when the first was first polled. Let's write a constructor:
+OK, so a `TimedWrapper` is generic over a type `Fut`, which must be a `Future`. And it will store a future of that type as a field. It'll also have a `start` field which will record when it first was first polled. Let's write a constructor:
 
 ```rust
 impl<Fut: Future> TimedWrapper<Fut> {
@@ -125,17 +125,19 @@ The rest of this post is going to be answering those questions. I'll explain som
 
 # Self-reference is unsafe
 
-Pin exists to solve a very specific problem: self-referential datatypes, i.e. data structures which have pointers into themselves. For example, a binary search tree is has self-referential pointers, because nodes have references to other nodes in the same structure.
+Pin exists to solve a very specific problem: self-referential datatypes, i.e. data structures which have pointers into themselves. For example, a binary search tree might have self-referential pointers, which point to other nodes in the same struct.
 
 Self-referential types can be really useful, but they're also hard to make memory-safe. To see why, let's use this example type with two fields, an i32 called `val` and a pointer to an i32 called `pointer`.
 
+TODO: Fix img
 ![A self-referential struct where all pointers are valid](/pin-unpin/node_diagram.jpg)
 
-At first, all is well. The `pointer` field points to the `val` field in memory address A, which contains a valid i32. So far all the pointers are _valid_, i.e. they point to memory that has the right type (in this case, an i32). But what happens if we move it?
+So far, nothing seems wrong. The `pointer` field points to the `val` field in memory address A, which contains a valid i32. All the pointers are _valid_, i.e. they point to memory that does indeed encode a value of the right type (in this case, an i32). But the Rust compiler often moves values around in memory. For example, if we pass this struct into another function , it might get moved to a different memory address. Or if this struct was in a `Vec<MyStruct>`, and we pushed more values in, the Vec might outgrow its capacity and need to move its elements into a new, larger buffer.
 
+TODO: Fix img
 ![Moving invalidates the pointer](/pin-unpin/node_diagram2.jpg)
 
-When we move it, the `pointer` field doesn't change its value. It's still pointing at address A, which now doesn't have a valid i32. The data that was there was moved to address B, but the pointer wasn't updated! So now the pointer is invalid. This is bad -- at best, invalid pointers cause crashes, at worst they cause hackable vulnerabilities. We only want to allow memory-unsafe behaviour in `unsafe` blocks, and we should be very careful to document this type and tell users to update the pointers after moves.
+When we move it, the struct's fields change their address, but not their value. So the `pointer` field is still pointing at address A (i.e. its value is still address A), which now doesn't have a valid i32. The data that was there was moved to address B, but the pointer wasn't updated! So now the pointer is invalid. This is bad -- at best, invalid pointers cause crashes, at worst they cause hackable vulnerabilities. We only want to allow memory-unsafe behaviour in `unsafe` blocks, and we should be very careful to document this type and tell users to update the pointers after moves.
 
 # Pin and Unpin
 
@@ -146,7 +148,7 @@ To recap, all Rust types fall into two categories.
 
 Types in category (1) are totally safe to move around in memory. You won't invalidate any pointers by moving them around. But if you move a type in (2), then you invalidate pointers and can get undefined behaviour, as we saw before. In earlier versions of Rust, you had to be really careful using these types to not move them, or if you moved them, to use `unsafe` and update all the pointers. But since Rust 1.33, the compiler can automatically figure out which category any type is in, and make sure you only use it safely.
 
-Any type in (1) implements a special auto trait called [`Unpin`](https://doc.rust-lang.org/stable/std/marker/trait.Unpin.html). Weird name, but its meaning will become clear soon. Again, most "normal" types implement `Unpin`, and because an auto trait (like `Send` or `Sync` or `Sized`[^1]), so you don't have to worry about implementing it yourself. If you're unsure if a type can be safely moved, just check it on [docs.rs](https://docs.rs) and see if it impls `Unpin`!
+Any type in (1) implements a special auto trait called [`Unpin`](https://doc.rust-lang.org/stable/std/marker/trait.Unpin.html). Weird name, but its meaning will become clear soon. Again, most "normal" types implement `Unpin`, and because it's an auto trait (like `Send` or `Sync` or `Sized`[^1]), so you don't have to worry about implementing it yourself. If you're unsure if a type can be safely moved, just check it on [docs.rs](https://docs.rs) and see if it impls `Unpin`!
 
 To use types in (2) safely, we don't use regular pointers for self-reference. Instead, we use special pointers that "pin" their values into place, ensuring they can't be moved. This is exactly what the [`Pin`](https://doc.rust-lang.org/stable/std/pin/struct.Pin.html) type does.
 
@@ -176,7 +178,7 @@ I know `unsafe` can be a bit scary, but it's OK to write unsafe code! I think of
 
 # Using pin-project instead
 
-So, OK, look, it's time for a confession: I don't using `unsafe`. I know I just explained why it's OK, but still, given the option,
+So, OK, look, it's time for a confession: I don't like using `unsafe`. I know I just explained why it's OK, but still, given the option,
 
 ![I would prefer not to](/pin-unpin/zizek_no.png)
 
