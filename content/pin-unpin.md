@@ -112,7 +112,7 @@ impl<Fut: Future> Future for TimedWrapper<Fut> {
 
 OK, that wasn't too hard. There's just one problem: this doesn't work.
 
-![Rustc compiler error](/pin-unpin/poll_err.png)
+![Rustc compiler error](/pin-unpin/poll_err.webp)
 
 So, the Rust compiler reports an error on `self.future.poll(cx)`, which is "no method named `poll` found for type parameter `Fut` in the current scope". This is confusing, because we know `Fut` is a `Future`, so surely it has a poll method? OK, but Rust continues: `Fut` doesn't have a poll method, but `Pin<&mut Fut>` has one. What is this weird type?
 
@@ -129,11 +129,11 @@ Pin exists to solve a very specific problem: self-referential datatypes, i.e. da
 
 Self-referential types can be really useful, but they're also hard to make memory-safe. To see why, let's use this example type with two fields, an i32 called `val` and a pointer to an i32 called `pointer`.
 
-![A self-referential struct where all pointers are valid](/pin-unpin/memory_before.png)
+![A self-referential struct where all pointers are valid](/pin-unpin/memory_before.webp)
 
 So far, everything is OK. The `pointer` field points to the `val` field in memory address A, which contains a valid i32. All the pointers are _valid_, i.e. they point to memory that does indeed encode a value of the right type (in this case, an i32). But the Rust compiler often moves values around in memory. For example, if we pass this struct into another function, it might get moved to a different memory address. Or we might Box it and put it on the heap. Or if this struct was in a `Vec<MyStruct>`, and we pushed more values in, the Vec might outgrow its capacity and need to move its elements into a new, larger buffer.
 
-![Moving invalidates the pointer](/pin-unpin/memory_after.png)
+![Moving invalidates the pointer](/pin-unpin/memory_after.webp)
 
 When we move it, the struct's fields change their address, but not their value. So the `pointer` field is still pointing at address A, but address A now doesn't have a valid i32. The data that was there was moved to address B, and some other value might have been written there instead! So now the pointer is invalid. This is bad -- at best, invalid pointers cause crashes, at worst they cause hackable vulnerabilities. We only want to allow memory-unsafe behaviour in `unsafe` blocks, and we should be very careful to document this type and tell users to update the pointers after moves.
 
@@ -150,7 +150,7 @@ Any type in (1) implements a special auto trait called [`Unpin`](https://doc.rus
 
 Types in (2) are creatively named `!Unpin` (the `!` in a trait means "does not implement"). To use these types safely, we can't use regular pointers for self-reference. Instead, we use special pointers that "pin" their values into place, ensuring they can't be moved. This is exactly what the [`Pin`](https://doc.rust-lang.org/stable/std/pin/struct.Pin.html) type does.
 
-![Pin wraps some pointer, stopping its value from moving](/pin-unpin/pin_diagram.png)
+![Pin wraps some pointer, stopping its value from moving](/pin-unpin/pin_diagram.webp)
 
 Pin wraps a pointer and stops its value from moving. The only exception is if the value impls `Unpin` -- then we know it's safe to move. Voila! Now we can write self-referential structs safely! This is really important, because as discussed above, many Futures are self-referential, and we need them for async/await.
 
@@ -178,7 +178,7 @@ I know `unsafe` can be a bit scary, but it's OK to write unsafe code! I think of
 
 So, OK, look, it's time for a confession: I don't like using `unsafe`. I know I just explained why it's OK, but still, given the option,
 
-![I would prefer not to](/pin-unpin/zizek_no.png)
+![I would prefer not to](/pin-unpin/zizek_no.webp)
 
 I didn't start writing Rust because I wanted to carefully think about the consequences of my actions, damnit, I just want to go fast and not break things. Luckily, someone sympathized with me and made a crate which generates totally safe projections! It's called [pin-project](https://docs.rs/pin-project) and it's _awesome_. All we need to do is change our definition:
 
