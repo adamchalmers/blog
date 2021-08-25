@@ -1,5 +1,5 @@
 +++
-title = "What do Pin and Unpin do for Rust?"
+title = "What does Rust need Pin and Unpin?"
 date = 2021-08-23
 
 [taxonomies]
@@ -129,17 +129,15 @@ Pin exists to solve a very specific problem: self-referential datatypes, i.e. da
 
 Self-referential types can be really useful, but they're also hard to make memory-safe. To see why, let's use this example type with two fields, an i32 called `val` and a pointer to an i32 called `pointer`.
 
-TODO: Fix img
-![A self-referential struct where all pointers are valid](/pin-unpin/node_diagram.jpg)
+![A self-referential struct where all pointers are valid](/pin-unpin/memory_before.png)
 
-So far, nothing seems wrong. The `pointer` field points to the `val` field in memory address A, which contains a valid i32. All the pointers are _valid_, i.e. they point to memory that does indeed encode a value of the right type (in this case, an i32). But the Rust compiler often moves values around in memory. For example, if we pass this struct into another function , it might get moved to a different memory address. Or if this struct was in a `Vec<MyStruct>`, and we pushed more values in, the Vec might outgrow its capacity and need to move its elements into a new, larger buffer.
+So far, everything is OK. The `pointer` field points to the `val` field in memory address A, which contains a valid i32. All the pointers are _valid_, i.e. they point to memory that does indeed encode a value of the right type (in this case, an i32). But the Rust compiler often moves values around in memory. For example, if we pass this struct into another function, it might get moved to a different memory address. Or we might Box it and put it on the heap. Or if this struct was in a `Vec<MyStruct>`, and we pushed more values in, the Vec might outgrow its capacity and need to move its elements into a new, larger buffer.
 
-TODO: Fix img
-![Moving invalidates the pointer](/pin-unpin/node_diagram2.jpg)
+![Moving invalidates the pointer](/pin-unpin/memory_after.png)
 
-When we move it, the struct's fields change their address, but not their value. So the `pointer` field is still pointing at address A (i.e. its value is still address A), which now doesn't have a valid i32. The data that was there was moved to address B, but the pointer wasn't updated! So now the pointer is invalid. This is bad -- at best, invalid pointers cause crashes, at worst they cause hackable vulnerabilities. We only want to allow memory-unsafe behaviour in `unsafe` blocks, and we should be very careful to document this type and tell users to update the pointers after moves.
+When we move it, the struct's fields change their address, but not their value. So the `pointer` field is still pointing at address A, but address A now doesn't have a valid i32. The data that was there was moved to address B, and some other value might have been written there instead! So now the pointer is invalid. This is bad -- at best, invalid pointers cause crashes, at worst they cause hackable vulnerabilities. We only want to allow memory-unsafe behaviour in `unsafe` blocks, and we should be very careful to document this type and tell users to update the pointers after moves.
 
-# Pin and Unpin
+# Unpin and !Unpin
 
 To recap, all Rust types fall into two categories.
 
@@ -150,7 +148,7 @@ Types in category (1) are totally safe to move around in memory. You won't inval
 
 Any type in (1) implements a special auto trait called [`Unpin`](https://doc.rust-lang.org/stable/std/marker/trait.Unpin.html). Weird name, but its meaning will become clear soon. Again, most "normal" types implement `Unpin`, and because it's an auto trait (like `Send` or `Sync` or `Sized`[^1]), so you don't have to worry about implementing it yourself. If you're unsure if a type can be safely moved, just check it on [docs.rs](https://docs.rs) and see if it impls `Unpin`!
 
-To use types in (2) safely, we don't use regular pointers for self-reference. Instead, we use special pointers that "pin" their values into place, ensuring they can't be moved. This is exactly what the [`Pin`](https://doc.rust-lang.org/stable/std/pin/struct.Pin.html) type does.
+Types in (2) are creatively named `!Unpin` (the `!` in a trait means "does not implement"). To use these types safely, we can't use regular pointers for self-reference. Instead, we use special pointers that "pin" their values into place, ensuring they can't be moved. This is exactly what the [`Pin`](https://doc.rust-lang.org/stable/std/pin/struct.Pin.html) type does.
 
 ![Pin wraps some pointer, stopping its value from moving](/pin-unpin/pin_diagram.png)
 
@@ -227,7 +225,15 @@ Finally, our goal is complete -- and we did it all without any unsafe code.
 
 If a Rust type has self-referential pointers, it can't be moved safely. After all, moving doesn't update the pointers, so they'll still be pointing at the old memory address, so they're now invalid. Rust can automatically tell which types are safe to move (and will auto impl the `Unpin` trait for them). If you have a `Pin`-ned pointer to some data, Rust can guarantee that nothing unsafe will happen (if it's safe to move, you can move it, if it's unsafe to move, then you can't). This is important because many Future types are self-referential, so we need `Pin` to safely poll a Future. You probably won't have to poll a future yourself (just use async/await instead), but if you do, use the [pin-project](https://docs.rs/pin-project) crate to simplify things.
 
-I hope this helped -- if you have any questions, please [ask me on Twitter](https://twitter.com/adam_chal). And if you want to get paid to talk to me about Rust and distributed systems, my team at Cloudflare is hiring, so get in touch at npunyzref@pybhqsyner.pbz (apply ROT13).
+I hope this helped -- if you have any questions, please [ask me on Twitter](https://twitter.com/adam_chal). And if you want to get paid to talk to me about Rust and networking protocols, my team at Cloudflare is hiring, so get in touch at npunyzref@pybhqsyner.pbz (apply ROT13).
+
+# References
+
+ * Complete TimedWrapper example code on [GitHub](https://github.com/adamchalmers/nested-future-example/blob/master/src/main.rs)
+ * The [std::pin docs](https://doc.rust-lang.org/stable/std/pin/index.html) have a pretty good explanation of Pin's details.
+ * The [Rust async book](https://rust-lang.github.io/async-book/04_pinning/01_chapter.html) explains why Futures often need self-referential pointers.
+ * Comprehensive article on [how pin projection actually works](https://fasterthanli.me/articles/pin-and-suffering) by [@fasterthanlime](https://twitter.com/fasterthanlime/)
+ * Great article explaining when and how Rust [moves values to different memory addresses](https://hashrust.com/blog/moves-copies-and-clones-in-rust/), by [@HashRust](https://twitter.com/hashrust)
 
 ---
 
