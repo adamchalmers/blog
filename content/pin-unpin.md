@@ -1,5 +1,5 @@
 +++
-title = "What does Rust need Pin and Unpin?"
+title = "Pin, Unpin, and why Rust needs them"
 date = 2021-08-23
 
 [taxonomies]
