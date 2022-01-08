@@ -58,8 +58,6 @@ For example, you can think of the Bash shell as a combinator approach. You have
 
 Another example of the combinator pattern is Rust's [Result<T,E>](https://doc.rust-lang.org/stable/std/result/enum.Result.html) type. Your primitive tools might be closures like `Fn(T) -> Result<V, U>`. The combinators are methods like `map`, `and_then` and `or_else`.
 
-And yet another example (maybe a bit of a stretch) is JSON! JSON defines some primitive types like `number`, `bool` and `string`, as well as some combinators like `Object` or `Array` that can take multiple primitive values and combine them into a composite value. Like a Person data type made from two primitive data types: `{"name": string, "age": number}`. And you can then combine Person values into arrays of people, or objects where the fields are people.
-
 Nom takes a similar approach, using combinators to combine parsers[^1]. There are primitive parsers that match one simple value from the input string, and functions (called combinators) which let you combine multiple primitive parsers into a more complex (composite) parser. Let's look at the primitives first.
 
 ## Primitive parsers
@@ -93,7 +91,7 @@ assert_eq!(parser(""), Err(Err::Error(Error::new("", ErrorKind::Digit))));
 
 So, we see that `digit1` is just a function. It takes one argument, the input string. The parser reads characters from the start of the input string, and if the character is a digit, it adds it to the output. When it finds a non-digit character, it terminates. Once it terminates it returns an [IResult](https://docs.rs/nom/latest/nom/type.IResult.html)... what's that?
 
-Remember above, we said that parsers should return `(I, O)` if they succeed (the remaining input string that _wasn't_ consumed to get an output value, and the output value itself), and `E` if they fail. Well, `IResult` is just shorthand for this. It's a simple convenience newtype: `type IResult<I, O, E> = Result<(I, O), E>`. The docs explain it well:
+Remember above, we said that parsers should return `(I, O)` if they succeed (the remaining input string that _wasn't_ consumed to get an output value, and the output value itself), and `E` if they fail. Well, `IResult` is just shorthand for this. It's a convenience [type alias](https://doc.rust-lang.org/book/ch19-04-advanced-types.html#creating-type-synonyms-with-type-aliases): `type IResult<I, O, E = nom::error::Error<I>> = Result<(I, O), E>`. Note that `E`, the error type, has a default -- we'll talk about that in a second. The docs explain `IResult` well:
 
 > Holds the result of parsing functions. The `Ok` side is a pair containing the remainder of the input (the part of the data that was not parsed) and the produced value. The `Err` side contains an instance of [`nom::Err`](https://docs.rs/nom/latest/nom/enum.Err.html).
 
