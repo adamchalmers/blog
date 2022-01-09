@@ -73,7 +73,7 @@ In Nom, parsers are just functions. Each parser function has three generic types
 - `O` is for _output_. The parser reads some bytes from the input and tries to convert them to its output value. Some parsers will output a number, a string, or some "business logic" type like a Person or User struct. In our Advent of Code above, we'll write parsers that output Points and Lines.
 - `E` is for _error_ (just like in the stdlib `Result<T,E>`). It's generic because Nom supports different error types with different trade-offs. We'll discuss them later. 
 
-Each function's type signature is basically the same: `Fn(I) -> Result<(I, O), E>`. It's just a function that takes the input string, reads some bytes, and tries to convert them into an output value `O`. If that conversion succeeds, it returns the rest of the input (the remainder, part the parser didn't need to read to get a value) and the value, which is why the OK branch is `(I, O)`. If it fails, it just returns the error `E`.
+Each function's type signature is basically the same: `Fn(I) -> Result<(I, O), E>`. It's just a function that takes the input string, reads some bytes, and tries to convert them into an output value `O`. If that conversion succeeds, it returns the rest of the input (the remainder, the part the parser didn't need to read to get a value) and the value, which is why the OK branch is `(I, O)`. If it fails, it just returns the error `E`.
 
 Here's a very simple example parser:  [`digit1`](https://docs.rs/nom/latest/nom/character/complete/fn.digit1.html). Technically it's `nom::character::complete::digit1`[^2]. The nom docs are usually really good, so let's take a look at their example.
 
@@ -91,7 +91,7 @@ assert_eq!(parser(""), Err(Err::Error(Error::new("", ErrorKind::Digit))));
 
 So, we see that `digit1` is just a function. It takes one argument, the input string. The parser reads characters from the start of the input string, and if the character is a digit, it adds it to the output. When it finds a non-digit character, it terminates. Once it terminates it returns an [IResult](https://docs.rs/nom/latest/nom/type.IResult.html)... what's that?
 
-Remember above, we said that parsers should return `(I, O)` if they succeed (the remaining input string that _wasn't_ consumed to get an output value, and the output value itself), and `E` if they fail. Well, `IResult` is just shorthand for this. It's a convenience [type alias](https://doc.rust-lang.org/book/ch19-04-advanced-types.html#creating-type-synonyms-with-type-aliases): `type IResult<I, O, E = nom::error::Error<I>> = Result<(I, O), E>`. Note that `E`, the error type, has a default -- we'll talk about that in a second. The docs explain `IResult` well:
+Remember above, we said that parsers should return `(I, O)` if they succeed (the remaining input string that _wasn't_ consumed to get an output value, and the output value itself), and `E` if they fail. Well, `IResult` is just shorthand for this. It's a convenience [type alias](https://doc.rust-lang.org/book/ch19-04-advanced-types.html#creating-type-synonyms-with-type-aliases): `type IResult<I, O, E = nom::error::Error<I>> = Result<(I, O), E>`. Note that `E`, the error type, defaults to a certain Nom error type -- we'll talk about that in a second. The docs explain `IResult` well:
 
 > Holds the result of parsing functions. The `Ok` side is a pair containing the remainder of the input (the part of the data that was not parsed) and the produced value. The `Err` side contains an instance of [`nom::Err`](https://docs.rs/nom/latest/nom/enum.Err.html).
 
@@ -234,7 +234,7 @@ pub fn parse_numbers(input: &str) -> IResult<&str, u32> {
 
 fn main() {
     let (actual_input_remaining, actual_output) = parse_numbers("123").unwrap();
-    let expected_output = 1234;
+    let expected_output = 123;
     let expected_input_remaining = "";
     assert_eq!(actual_output, expected_output);
     assert_eq!(actual_input_remaining, expected_input_remaining);
@@ -300,7 +300,6 @@ impl Point {
 
 // Because each parser is just a pure, deterministic function, 
 // it's very easy to unit test them!
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -372,6 +371,8 @@ mod tests {
 Now it should be easy to parse the rest. We know each line in the text file should encode one Line object. We can use [`separated_list1`](https://docs.rs/nom/latest/nom/multi/fn.separated_list1.html) to match a line, then match and discard a newline, then match a line, then match and discard a newline, etc etc until the end of the file.
 
 ```rust
+use nom::character::complete::line_ending;
+
 /// Parse the whole Advent of Code day 5 text file.
 pub fn parse_input(s: &str) -> Vec<Line> {
     let (remaining_input, lines) = separated_list1(line_ending, Line::parse)(s).unwrap();
@@ -409,10 +410,12 @@ I'm still figuring out a good solution for blog comments, but for now you can em
 
 (oh, and if you liked this, and want to get paid to talk about Rust full time with me: drop your resume to ehfgwbof@pybhqsyner.pbz after rot13 -- currently hiring in the EU and USA, ideally Lisbon or Austin)
 
+_Thank you to Joshua Nelson, Michael Sproul and Stephen Merity for reading the draft!_
+
 ---
 
 [^1]: Nom is inspired by Parsec, the original parser combinator library from Haskell. I first learned about Parsec from its chapter in [Real World Haskell](http://book.realworldhaskell.org/read/using-parsec.html) and was impressed by how easily the concept could be ported into Rust. 
 
 [^2]: There are two kinds of parsers, _complete_ for when you can read the whole input into memory, and _streaming_ for when you're getting the input bit by bit. For Advent of Code, the input files are always big enough to fit into memory. But if you were streaming, say, really huge datasets that couldn't fit into memory, you'd use _streaming_. Or if you were reading from a streaming protocol like an HTTP or gRPC body, you'd probably use streaming there too.
 
-[^3]: Note the type signatures haver a lot of complicated boilerplate -- that's because I wanted the parsers to support either the default Nom error, or Nom's VerboseError. If you have a suggestion for improving it without breaking backwards compatibility, please let me know!
+[^3]: Note the type a lot of complicated boilerplate -- that's because I wanted the parsers to support either the default Nom error, or Nom's VerboseError. If you have a suggestion for improving it without breaking backwards compatibility, please let me know!
