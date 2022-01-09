@@ -1,6 +1,7 @@
 +++
 title = "Grids in Rust, part 2: const generics"
 date = 2021-03-24
+description = "Const generics let us combine the speed of Arrays with the flexibility of Vecs."
 
 [taxonomies]
 tags = ["rust", "programming", "benchmarking", "rayon", "const-generics"]

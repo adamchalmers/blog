@@ -1,7 +1,7 @@
 +++
 title = "Pin, Unpin, and why Rust needs them"
 date = 2021-08-23
-
+description = "I spent hours researching these bizarre types so that you don't have to."
 [taxonomies]
 tags = ["rust", "programming", "async", "pin"]
 +++

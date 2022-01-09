@@ -1,6 +1,7 @@
 +++
 title = "Grids in Rust, part 1: nested vs. flat Vecs"
 date = 2021-03-22
+description = "Benchmarking different implementations of a multithreaded, parallelized 2D grid."
 
 [taxonomies]
 tags = ["rust", "programming", "benchmarking", "rayon"]
