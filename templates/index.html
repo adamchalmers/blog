@@ -12,7 +12,7 @@
     <meta property="og:type" content="article" />
     <meta property="og:site_name" content="A Less Mad March" />
     <meta property="og:image" content="{{ get_url(path="birds_of_paradise_lego.jpg", trailing_slash=false) }}" />
-    <meta property="og:url" content="{{config.base_url | safe}}" />
+    <meta property="og:url" content="{{config.base_url | safe}}{% if current_path %}{{current_path | safe}}{% endif %}" />
     <meta name="description" content="{{ config.description }}">
     {% block meta_content %}
     {% endblock meta_content %}
