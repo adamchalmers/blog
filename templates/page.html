@@ -12,7 +12,14 @@
     <div class="content">
         {{ page.content | safe }}
     </div>
-
+    <script src="https://utteranc.es/client.js"
+        repo="adamchalmers/blog"
+        issue-term="title"
+        label="comments"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+    </script>
     {{ page_macros::page_info(page=page) }}
 </article>
 
