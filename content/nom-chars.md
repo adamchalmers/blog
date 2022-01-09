@@ -1,7 +1,7 @@
 +++
 title = "Parsing Text with Nom"
 date = 2022-01-05
-description = "A gentle introduction, using Advent of Code as an example"
+description = "A gentle guide to parsing in Rust with Nom, using Advent of Code as an example"
 
 [taxonomies]
 tags = ["rust", "programming", "nom", "parsing"]
