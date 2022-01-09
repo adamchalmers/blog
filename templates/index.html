@@ -17,8 +17,9 @@
     {% block meta_content %}
     {% endblock meta_content %}
     <title>{% block title %}{{ config.title }}{% endblock title %}</title>
-
+    
     <link rel="stylesheet" href="{{ get_url(path="main.css", trailing_slash=false) }}">
+    <link rel="shortcut icon" href="{{ get_url(path="favicon.ico", trailing_slash=false) }}"/>
 
     {% if config.generate_feed %}
         <link rel="alternate" type={% if config.feed_filename == "atom.xml" %}"application/atom+xml"{% else %}"application/rss+xml"{% endif %} title="RSS" href="{{ get_url(path=config.feed_filename) | safe }}">
