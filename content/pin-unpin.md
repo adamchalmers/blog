@@ -225,7 +225,7 @@ Finally, our goal is complete -- and we did it all without any unsafe code.
 
 If a Rust type has self-referential pointers, it can't be moved safely. After all, moving doesn't update the pointers, so they'll still be pointing at the old memory address, so they're now invalid. Rust can automatically tell which types are safe to move (and will auto impl the `Unpin` trait for them). If you have a `Pin`-ned pointer to some data, Rust can guarantee that nothing unsafe will happen (if it's safe to move, you can move it, if it's unsafe to move, then you can't). This is important because many Future types are self-referential, so we need `Pin` to safely poll a Future. You probably won't have to poll a future yourself (just use async/await instead), but if you do, use the [pin-project](https://docs.rs/pin-project) crate to simplify things.
 
-I hope this helped -- if you have any questions, please [ask me on Twitter](https://twitter.com/adam_chal). And if you want to get paid to talk to me about Rust and networking protocols, my team at Cloudflare is hiring, so get in touch at npunyzref@pybhqsyner.pbz (apply ROT13).
+I hope this helped -- if you have any questions, please [ask me on Twitter](https://twitter.com/adam_chal). And if you want to get paid to talk to me about Rust and networking protocols, my team at Cloudflare is hiring, so get in touch at ehfg-wbof@pybhqsyner.pbz (apply ROT13).
 
 # References
 

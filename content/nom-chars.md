@@ -407,7 +407,7 @@ I find the "start small" approach really productive. Using many small parsers in
 
 I hope this helped you understand Nom and parser combinators! If you want to learn more, I suggest taking a look at Nom's [README.md](https://github.com/Geal/nom/blob/main/README.md) -- it has a list of links to different docs, including the API docs, some design documents and even a "which combinator should I use" guide. Nom's creator Geoffroy Couprie has really gone above and beyond to make some good docs!
 
-We'll dive further into Nom in future posts. For now, if you have any questions, leave a comment below or talk to me on twitter [@adam_chal](https://twitter.com/adam_chal). And if you liked this article, and want to get paid to talk about Rust full time with me: email your resume to ehfgwbof@pybhqsyner.pbz after rot13. The last person who reached out like this got hired, so don't be shy! We're currently hiring remote workers based in the EU and USA (we have offices in [a lot of cities](https://www.cloudflare.com/careers/jobs/)).
+We'll dive further into Nom in future posts. For now, if you have any questions, leave a comment below or talk to me on twitter [@adam_chal](https://twitter.com/adam_chal). And if you liked this article, and want to get paid to talk about Rust full time with me: email your resume to ehfg-wbof@pybhqsyner.pbz after rot13. The last person who reached out like this got hired, so don't be shy! We're currently hiring remote workers based in the EU and USA (we have offices in [a lot of cities](https://www.cloudflare.com/careers/jobs/)).
 
 _Thank you to Joshua Nelson, Michael Sproul and Stephen Merity for reading the draft!_
 
