@@ -9,7 +9,7 @@ tags = ["rust", "programming", "nom", "parsing", "binary"]
 
 Programming languages generally only manipulate bytes (groups of 8 bits). It can be pretty tricky to manipulate single bits. But sometimes you need to -- for example, a [DNS header](https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.1) has some 4-bit numbers, and encodes some boolean flags into single bits. So we really need a way to parse binary data without chunking it up into bytes of 8 bits.
 
-Luckily, [Nom](https://docs.rs/nom) can do this! In the last blog post, we learned how to [parse text files](/nom-chars.md) with Nom. The trick is to start with simple parsers that parse a few characters at a time. Then, using combinators, combine those simple parsers into more complex parsers that can deserialize an entire structured file. We can reuse this approach for parsing _binary_ data too. Let's see how!
+Luckily, [Nom](https://docs.rs/nom) can do this! In the last blog post, we learned how to [parse text files](/nom-chars) with Nom. The trick is to start with simple parsers that parse a few characters at a time. Then, using combinators, combine those simple parsers into more complex parsers that can deserialize an entire structured file. We can reuse this approach for parsing _binary_ data too. Let's see how!
 
 <!-- more -->
 
