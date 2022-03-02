@@ -42,6 +42,17 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+@media (prefers-color-scheme: dark) {
+    body {
+        margin: 0;
+        background: #333;
+        color: #fff;
+        font-size: 18px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+    }
+}
+
 article,
 aside,
 details,
@@ -83,7 +94,7 @@ h3 {
 /* Links */
 
 a {
-    color: #1d60a3;
+    color: #5888b8;
     text-decoration: none;
 }
 
@@ -224,6 +235,12 @@ header a {
     color: #333;
 }
 
+@media (prefers-color-scheme: dark) {
+    header a {
+        color: #ccc;
+    }
+}
+
 .site-header {
     white-space: nowrap;
 }
@@ -261,6 +278,16 @@ article header h1 a {
     text-decoration: none;
     color: #333;
 }
+
+
+@media (prefers-color-scheme: dark) {
+    article header h1 a {
+        border: none;
+        text-decoration: none;
+        color: #ccc;
+    }
+}
+
 
 .article-info {
     font-size: 0.75em;
