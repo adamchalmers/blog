@@ -4,7 +4,7 @@ date = 2022-01-05
 description = "How to use Nom to parse binary protocols at the level of individual bits"
 
 [taxonomies]
-tags = ["rust", "programming", "nom", "parsing"]
+tags = ["rust", "programming", "nom", "parsing", "binary"]
 +++
 
 Programming languages generally only manipulate bytes (groups of 8 bits). It can be pretty tricky to manipulate single bits. But sometimes you need to -- for example, a [DNS header](https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.1) has some 4-bit numbers, and encodes some boolean flags into single bits. So we really need a way to parse binary data without chunking it up into bytes of 8 bits.
