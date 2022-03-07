@@ -1,6 +1,6 @@
 +++
 title = "Parsing bitstreams with Nom"
-date = 2022-01-05
+date = 2022-02-01
 description = "How to use Nom to parse binary protocols at the level of individual bits"
 
 [taxonomies]
