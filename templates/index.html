@@ -13,13 +13,16 @@
     <meta property="og:site_name" content="A Less Mad March" />
     <meta property="og:image" content="{{ get_url(path="birds_of_paradise_wide.jpg", trailing_slash=false) }}" />
     <meta property="og:url" content="{{config.base_url | safe}}{% if current_path %}{{current_path | safe}}{% endif %}" />
-    {% if page.description %}
+    {% if page.title -%}
+    <meta name="twitter:title" content="{{ page.title | safe }}">
+    {% endif -%}
+    {% if page.description -%}
     <meta name="description" content="{{ page.description | safe }}" />
     <meta name="twitter:description" content="{{ page.description | safe }}">
     <meta property="og:description" content="{{ page.description | safe }}" />
-    {% else %}
+    {% else -%}
     <meta name="description" content="{{ config.description }}">
-    {% endif %}
+    {% endif -%}
     <title>{% block title %}{{ config.title }}{% endblock title %}</title>
     <style>
         /* Basic */
