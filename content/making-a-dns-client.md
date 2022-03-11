@@ -1,7 +1,8 @@
 +++
 title = "What I learned from making a DNS client in Rust"
-date = 2022-02-06
+date = 2022-03-11
 description = "A fun project that taught me a lot"
+draft = true
 
 [taxonomies]
 tags = ["rust", "programming", "nom", "parsing", "binary", "dns", "bitvec"]
