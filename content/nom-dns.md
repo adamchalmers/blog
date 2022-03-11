@@ -198,9 +198,16 @@ Ultimately, for my use case (building a [DNS client][dingo]), Nom made sense. DN
 
 And if you need to both serialize and deserialize a binary format, consider using [deku], which lets you just write one Serde-like struct declaration which can handle both. Just be warned that it imports Serde and all the proc-macro/syn/quote crates, which will take much longer to compile than plain old Nom.
 
-You can see the full parser code [on GitHub](https://github.com/adamchalmers/dingo/blob/83e9e62d4740f44911ca968a1d79c4ae38467f7b/src/message/header.rs#L79). I hope this real-world example helps you understand Nom bitwise parsers a bit better. In my next blog post, I'll talk about some other aspects of my DNS client, and what I learned from making it.
+## Thanks for reading!
+
+You can see the full parser code [on GitHub](https://github.com/adamchalmers/dingo/blob/83e9e62d4740f44911ca968a1d79c4ae38467f7b/src/message/header.rs#L79). I hope this real-world example helps you understand Nom bitwise parsers a bit better. My next blog post will be about Dingo -- it was really fun making a DNS client, and I want to tell you what I learned from making it.
+
+Ok listen up, if you read this far, you probably like programming with Rust, and reading documents I write, and you might even like working on Rust projects with me. if that's not true, stop reading now! exit this tab immediately! you have been warned!
+
+phew ok the haters have left. So I recently started a new team at work. We're still very small, it's just me, my manager, and a product manager. We're looking to hire another engineer or two. Do you, cool reader guy/lady/person, want to come work with me? Email achalmers@cloudflare.com with a resume and we'll chat! Here's a [job description][jd]. I've already hired one person this way, and I'm trying to hire more. We're probably going to hire one more-junior and one more-senior engineer. Hope to hear from you soon!
 
 [scottcomment]: https://www.reddit.com/r/rust/comments/t52iuz/comment/hz31599/?utm_source=reddit&utm_medium=web2x&context=3
+[jd]: https://boards.greenhouse.io/cloudflare/jobs/3812886?gh_jid=3812886
 [deku]: https://docs.rs/deku
 [bitstream-io]: https://docs.rs/bitstream-io
 [scottlamb]: https://github.com/scottlamb
