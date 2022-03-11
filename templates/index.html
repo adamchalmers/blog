@@ -14,6 +14,7 @@
     <meta property="og:image" content="{{ get_url(path="birds_of_paradise_wide.jpg", trailing_slash=false) }}" />
     <meta property="og:url" content="{{config.base_url | safe}}{% if current_path %}{{current_path | safe}}{% endif %}" />
     {% if page.title -%}
+    <meta name="og:title" content="{{ page.title | safe }}">
     <meta name="twitter:title" content="{{ page.title | safe }}">
     {% endif -%}
     {% if page.description -%}
