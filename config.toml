@@ -22,7 +22,7 @@ taxonomies = [
 anpu_menu_links = [
     { url = "$BASE_URL/about/", name = "About" },
     { url = "$BASE_URL/tags/", name = "Tags" },
-    { url = "$BASE_URL/atom.xml/", name = "Atom feed" },
+    { url = "$BASE_URL/atom.xml", name = "Atom feed" },
 ]
 
 [markdown]

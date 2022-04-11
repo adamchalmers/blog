@@ -148,7 +148,7 @@ This is one of my favourite projects I've done. My career goal for this year is 
 [Nom]: https://docs.rs/nom
 [aoc16]: https://adventofcode.com/2021/day/16
 [wizardzines]: https://wizardzines.com
-[picoargs]: https://crates.io/crates/picoargs
+[picoargs]: https://crates.io/crates/pico-args
 [bitvec]: https://docs.rs/bitvec
 [UdpSocket]: https://doc.rust-lang.org/stable/std/net/struct.UdpSocket.html
 [wizardzines_dns_packet]: https://wizardzines.com/comics/dns-packet/
