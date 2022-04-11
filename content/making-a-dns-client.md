@@ -56,9 +56,9 @@ This was my first time actually reading an RFC top-to-bottom, and I was surprise
 
 ## Sockets
 
-I've never been very comfortable with sockets. I tried reading [Beej's guide to socket programming](beej) back in college, but I didn't really have the necessary OS, networking or C skills to make it through. I know about TCP and UDP, but I knew nothing about the lower-level abstractions that unify them. 
+I've never been very comfortable with sockets. I tried reading [Beej's guide to socket programming][beej] back in college, but I didn't really have the necessary OS, networking or C skills to make it through. I know about TCP and UDP, but I knew nothing about the lower-level abstractions that unify them. 
 
-This project was the first time I had to open a UDP socket -- in my regular programming, I've just relied on some networking library to handle that low level detail. So, I read the [Rust docs for UDP sockets](stdlibudp), which are remarkably clear. A lot of the methods on UdpSocket correspond directly to Linux syscalls. When I later went back and read [Beej's socket guide](beej) properly, it was really easy. All these syscalls were familiar -- they're just Rust stdlib networking methods!
+This project was the first time I had to open a UDP socket -- in my regular programming, I've just relied on some networking library to handle that low level detail. So, I read the [Rust docs for UDP sockets][stdlibudp], which are remarkably clear. A lot of the methods on UdpSocket correspond directly to Linux syscalls. When I later went back and read [Beej's socket guide][beej] properly, it was really easy. All these syscalls were familiar -- they're just Rust stdlib networking methods!
 
 In fact, if I use `dtruss` (a MacOS tool for inspecting which syscalls your programs make[^syscall]), I can see exactly what syscalls my program is using:
 
@@ -84,7 +84,7 @@ The syscalls `connect`, `sendto` and `recvfrom` are all from calling Rust method
 
 I really love Bitvec. It combines the usability and readability of `Vec<bool>` with the speed of using bit-twiddling tricks. It's the perfect example of Rust's no-compromises "ergonomics AND speed AND correctness" ideals.
 
-The library exposes types for BitArray, BitVec and BitSlice. They _mostly_ work the same, but I found two little [confusing issues](https://twitter.com/adam_chal/status/1487975794379005960) where they work differently. These were easily caught with unit tests, though, so I guess it's just a learning experience. The author hopes that after Rust ships more [const generics](constgenblog) features, they can release a Bitvec 2.0 where these types work the same. 
+The library exposes types for BitArray, BitVec and BitSlice. They _mostly_ work the same, but I found two little [confusing issues](https://twitter.com/adam_chal/status/1487975794379005960) where they work differently. These were easily caught with unit tests, though, so I guess it's just a learning experience. The author hopes that after Rust ships more [const generics][constgenblog] features, they can release a Bitvec 2.0 where these types work the same. 
 
 ## Dig's weird output
 
@@ -132,7 +132,7 @@ Enums are such a great way to express domain logic. Functional programmers have 
 
 ## Message compression (MC)
 
-MC is a neat feature that DNS servers can use to reduce the size of their responses. Instead of repeating the same hostname multiple times in the response, MC replaces a hostname with a pointer back to a previously-cited hostname. The RFC actually [explains it really well](https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.4). MC helps servers fit their DNS responses into a single UDP packet, which is important because UDP is unreliable and doesn't care about truncated packets. MC requires looking _back_ at the previously-parsed bytes, but Nom only lets you look _ahead_ at remaining, unparsed bytes. It took several attempts before I could support MC in a nice, idiomatic Nom way ([code](msgcmprcode)), so that cost me another weekend of work.
+MC is a neat feature that DNS servers can use to reduce the size of their responses. Instead of repeating the same hostname multiple times in the response, MC replaces a hostname with a pointer back to a previously-cited hostname. The RFC actually [explains it really well](https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.4). MC helps servers fit their DNS responses into a single UDP packet, which is important because UDP is unreliable and doesn't care about truncated packets. MC requires looking _back_ at the previously-parsed bytes, but Nom only lets you look _ahead_ at remaining, unparsed bytes. It took several attempts before I could support MC in a nice, idiomatic Nom way ([code][msgcmprcode]), so that cost me another weekend of work.
 
 # Conclusion
 
