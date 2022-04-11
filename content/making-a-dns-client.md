@@ -8,7 +8,7 @@ draft = false
 tags = ["rust", "programming", "nom", "parsing", "binary", "dns", "bitvec"]
 +++
 
-Over the last few weeks I built my own DNS client. Mostly because I thought dig (the standard DNS client) was kinda clunky. Partly because I wanted to learn more about DNS. So here's how I built it, and how you can build your own too. It's a great weekend project, and I learned a lot from finishing it.
+Over the last few weeks I built [my own DNS client][dingo]. Mostly because I thought dig (the standard DNS client) was kinda clunky. Partly because I wanted to learn more about DNS. So here's how I built it, and how you can build your own too. It's a great weekend project, and I learned a lot from finishing it.
 
 <!-- more -->
 
@@ -22,17 +22,25 @@ When I read that comic, I was shocked -- the DNS query protocol is much simpler 
 
 # The Plan
 
-The other reason I wanted to make a DNS client is that I knew I could simplify every step using some great Rust crates:
+The other reason I wanted to make a DNS client is that I knew I could simplify every step using some great Rust crates. The plan:
 
- - Parse the CLI args using [picoargs]
-   - It's not as powerful as [clap], the standard Rust "enterprise-grade" CLI crate, and it requires some more boilerplate. But I don't really need advanced CLI features, and picoargs compiles _way_ faster.
- - Serialize the DNS query using [bitvec], an _awesome_ general-purpose crate for reading or writing individual bits.
- - Communicate with a DNS resolver with the stdlib [UdpSocket] type. 
-   - I had no idea how this worked, but the Rust stdlib is really well-documented, so I was sure I could pick it up.
- - Parse the binary response with [Nom]. 
-   - I learned how to parse bitwise protocols with Nom when doing [Advent of Code][aoc16]
-   - See my [previous blog post][bitnom] for more about this!
- - Use plain old `println!` to print the response to the user.  
+1. **Parse the CLI args using [picoargs]**
+
+   It's not as powerful as [clap], the standard Rust "enterprise-grade" CLI crate, and it requires some more boilerplate. But I don't really need advanced CLI features, and picoargs compiles _way_ faster.
+
+2. **Serialize the DNS query using [bitvec], an _awesome_ general-purpose crate for reading or writing individual bits**
+
+   I learned how to parse bitwise protocols with Nom when doing [Advent of Code][aoc16]
+
+3. **Communicate with a DNS resolver with the stdlib [UdpSocket] type**
+
+   I had no idea how this worked, but the Rust stdlib is really well-documented, so I was sure I could pick it up.
+
+4. **Parse the binary response with [Nom]**
+
+   I learned how to parse bitwise protocols with Nom when doing [Advent of Code][aoc16]. My [previous blog post][nomdns] has a detailed guide to parsing DNS headers, using bit-level Nom for the one-bit flags and four-bit numbers.
+
+5. **Use plain old `println!` to print the response to the user**
 
 # How did I go?
 
@@ -50,7 +58,7 @@ You can install it or read the finished code [on GitHub][dingo].
 
 I think a lot of programmers are intimidated by RFCs. At least, I'd like to think so, because I certainly am. Maybe all my peers are secretly RFC-loving little gremlins who get a heart-pounding high from reading plaintext ASCII diagrams... but they've never mentioned it.
 
-This was my first time actually reading an RFC top-to-bottom, and I was surprised by how legible it was. I kept referring back to it, and I pasted key definitions and quotes from the RFC into source code comments, to help understand how all the pieces fit together. Maybe RFC 1035 is unusually good and the rest _are_ actually all scary and incomprehensible. But I liked it.
+[RFC 1035][rfc1035] defines the DNS message protocol, so I had to read it very closely. This was my first time actually reading an RFC top-to-bottom, and I was surprised by how legible it was. I kept referring back to it, and I pasted key definitions and quotes from the RFC into source code comments, to help understand how all the pieces fit together. Maybe RFC 1035 is unusually good and the rest _are_ actually all scary and incomprehensible. But I liked it.
 
 (it's especially interesting reading this as a historical document, a primary source -- a lot has changed since the 1980s, and it's fascinating to learn what programmers back then were thinking, before the modern internet really existed)
 
@@ -144,21 +152,21 @@ This is one of my favourite projects I've done. My career goal for this year is 
 
 [^syscall]: Syscalls are like functions the operating system defines, so the operating system can manage risky operations like I/O. Dtruss is a MacOS version of `strace`, a Linux tool. I learned how to use `strace` from Julia Evans' [great strace comics](https://wizardzines.com/zines/strace/) which I _highly_ recommend, I learned so much from it. Now when I write a program, I can spy on exactly what the compiled code is _actually_ doing when it runs my functions.
 
-[clap]: https://crates.io/crates/clap
-[Nom]: https://docs.rs/nom
 [aoc16]: https://adventofcode.com/2021/day/16
-[wizardzines]: https://wizardzines.com
-[picoargs]: https://crates.io/crates/pico-args
-[bitvec]: https://docs.rs/bitvec
-[UdpSocket]: https://doc.rust-lang.org/stable/std/net/struct.UdpSocket.html
-[wizardzines_dns_packet]: https://wizardzines.com/comics/dns-packet/
 [b0rk]: https://jvns.ca/
-[bitnom]: /nom-bits
-[dingo]: https://github.com/adamchalmers/dingo
-[rfc1035]: https://datatracker.ietf.org/doc/html/rfc1035
-[sec411]: https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.1
 [be_u16]: https://docs.rs/nom/latest/nom/number/complete/fn.be_u16.html
 [beej]: https://beej.us/guide/bgnet/
-[stdlibudp]: https://doc.rust-lang.org/stable/std/net/struct.UdpSocket.html
+[bitvec]: https://docs.rs/bitvec
+[clap]: https://crates.io/crates/clap
 [constgenblog]: https://blog.adamchalmers.com/grids-2/
+[dingo]: https://github.com/adamchalmers/dingo
 [msgcomprcode]: https://github.com/adamchalmers/dingo/blob/master/src/message.rs#L174-L185
+[Nom]: https://docs.rs/nom
+[nomdns]: /nom-dns
+[picoargs]: https://crates.io/crates/pico-args
+[rfc1035]: https://datatracker.ietf.org/doc/html/rfc1035
+[sec411]: https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.1
+[stdlibudp]: https://doc.rust-lang.org/stable/std/net/struct.UdpSocket.html
+[UdpSocket]: https://doc.rust-lang.org/stable/std/net/struct.UdpSocket.html
+[wizardzines_dns_packet]: https://wizardzines.com/comics/dns-packet/
+[wizardzines]: https://wizardzines.com
