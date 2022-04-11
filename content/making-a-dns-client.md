@@ -24,7 +24,7 @@ When I read that comic, I was shocked -- the DNS query protocol is much simpler 
 
 The other reason I wanted to make a DNS client is that I knew I could simplify every step using some great Rust crates:
 
- - Parse the CLI args using [picoargs]
+ - Parse the CLI args using [pico-args]
    - It's not as powerful as [clap], the standard Rust "enterprise-grade" CLI crate, and it requires some more boilerplate. But I don't really need advanced CLI features, and picoargs compiles _way_ faster.
  - Serialize the DNS query using [bitvec], an _awesome_ general-purpose crate for reading or writing individual bits.
  - Communicate with a DNS resolver with the stdlib [UdpSocket] type. 
@@ -148,7 +148,7 @@ This is one of my favourite projects I've done. My career goal for this year is 
 [Nom]: https://docs.rs/nom
 [aoc16]: https://adventofcode.com/2021/day/16
 [wizardzines]: https://wizardzines.com
-[picoargs]: https://crates.io/crates/picoargs
+[pico-args]: https://crates.io/crates/pico-args
 [bitvec]: https://docs.rs/bitvec
 [UdpSocket]: https://doc.rust-lang.org/stable/std/net/struct.UdpSocket.html
 [wizardzines_dns_packet]: https://wizardzines.com/comics/dns-packet/
