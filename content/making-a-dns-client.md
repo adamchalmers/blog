@@ -1,7 +1,7 @@
 +++
 title = "What I learned from making a DNS client in Rust"
 date = 2022-04-10
-description = "A fun project that taught me a lot"
+description = "A lot about sockets, syscalls and bits"
 draft = false
 
 [taxonomies]
@@ -88,7 +88,7 @@ The library exposes types for BitArray, BitVec and BitSlice. They _mostly_ work 
 
 ## Dig's weird output
 
-Part of the reason I wanted to make a DNS client is that I hated using `dig`. It's got so many confusing fields and weird extraneous information. I just want to see what some hostname resolves to, and `dig` forces me to read all this extra info I don't care about.
+I mentioned earlier that I hate using `dig`. It's got so many confusing fields and weird extraneous information. I just want to see what some hostname resolves to, and `dig` forces me to read all this extra info I don't care about.
 
 ```
 $ dig adamchalmers.com
