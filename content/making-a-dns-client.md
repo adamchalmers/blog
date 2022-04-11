@@ -30,7 +30,7 @@ The other reason I wanted to make a DNS client is that I knew I could simplify e
 
 2. **Serialize the DNS query using [bitvec], an _awesome_ general-purpose crate for reading or writing individual bits**
 
-   I learned how to parse bitwise protocols with Nom when doing [Advent of Code][aoc16]
+   I learned how to parse bitwise protocols with Nom when doing [Advent of Code][aoc16]. I considered using [deku] instead but decided against it[^nodeku].
 
 3. **Communicate with a DNS resolver with the stdlib [UdpSocket] type**
 
@@ -150,6 +150,12 @@ This is one of my favourite projects I've done. My career goal for this year is 
 
 #### Footnotes
 
+[^nodeku]: I tried [deku], it's very nice! I like how it generates both serialization and deserialization methods using annotations on your struct's fields, so they never conflict, and you don't have to learn two separate libraries (bitvec _and_ nom). 
+
+But I wanted practice explicitly using bitvec and getting comfortable with its API -- after all, I was only doing this project to learn things. 
+
+Also, deku uses [serde] and [syn] to power its (really helpful) serialization annotations. These crates are really powerful and can really reduce the boilerplate in your codebases. But they do add a fair bit of overhead to your build times. This isn't a problem at work, where my Rust projects are pretty large and already include serde/syn in the tree. But dingo didn't use either of them, so adding Deku would increase build time from 5 seconds to 15 seconds. I hope to use Deku in the future, but it didn't really fit for this particular project. 
+
 [^syscall]: Syscalls are like functions the operating system defines, so the operating system can manage risky operations like I/O. Dtruss is a MacOS version of `strace`, a Linux tool. I learned how to use `strace` from Julia Evans' [great strace comics](https://wizardzines.com/zines/strace/) which I _highly_ recommend, I learned so much from it. Now when I write a program, I can spy on exactly what the compiled code is _actually_ doing when it runs my functions.
 
 [aoc16]: https://adventofcode.com/2021/day/16
@@ -159,6 +165,7 @@ This is one of my favourite projects I've done. My career goal for this year is 
 [bitvec]: https://docs.rs/bitvec
 [clap]: https://crates.io/crates/clap
 [constgenblog]: https://blog.adamchalmers.com/grids-2/
+[deku]: https://crates.io/crates/deku
 [dingo]: https://github.com/adamchalmers/dingo
 [msgcomprcode]: https://github.com/adamchalmers/dingo/blob/master/src/message.rs#L174-L185
 [Nom]: https://docs.rs/nom
@@ -166,7 +173,9 @@ This is one of my favourite projects I've done. My career goal for this year is 
 [picoargs]: https://crates.io/crates/pico-args
 [rfc1035]: https://datatracker.ietf.org/doc/html/rfc1035
 [sec411]: https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.1
+[serde]: https://crates.io/crates/serde
 [stdlibudp]: https://doc.rust-lang.org/stable/std/net/struct.UdpSocket.html
+[syn]: https://crates.io/crates/syn
 [UdpSocket]: https://doc.rust-lang.org/stable/std/net/struct.UdpSocket.html
 [wizardzines_dns_packet]: https://wizardzines.com/comics/dns-packet/
 [wizardzines]: https://wizardzines.com
