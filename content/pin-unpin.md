@@ -239,5 +239,6 @@ I hope this helped -- if you have any questions, please [ask me on Twitter](http
 _Thanks to Nick Vollmar for feedback and to [Shepmaster](https://stackoverflow.com/users/155423/shepmaster) for helping me use pin-project when I first needed to write a nested Future_
 
 ---
+#### Footnotes
 
-[^1] OK _technically_ `Sized` isn't an auto trait, but it basically is, because the compiler has a special case for it. See [this discussion](https://github.com/pretzelhammer/rust-blog/issues/28) for why!
+[^1]: OK _technically_ `Sized` isn't an auto trait, but it basically is, because the compiler has a special case for it. See [this discussion](https://github.com/pretzelhammer/rust-blog/issues/28) for why!

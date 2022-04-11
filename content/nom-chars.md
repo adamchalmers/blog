@@ -413,6 +413,8 @@ _Thank you to Joshua Nelson, Michael Sproul and Stephen Merity for reading the d
 
 ---
 
+#### Footnotes
+
 [^1]: Nom is inspired by Parsec, the original parser combinator library from Haskell. I first learned about Parsec from its chapter in [Real World Haskell](http://book.realworldhaskell.org/read/using-parsec.html) and was impressed by how easily the concept could be ported into Rust. 
 
 [^2]: There are two kinds of parsers, _complete_ for when you can read the whole input into memory, and _streaming_ for when you're getting the input bit by bit. For Advent of Code, the input files are always big enough to fit into memory. But if you were streaming, say, really huge datasets that couldn't fit into memory, you'd use _streaming_. Or if you were reading from a streaming protocol like an HTTP or gRPC body, you'd probably use streaming there too.

@@ -210,6 +210,10 @@ fn parse_msg(i: &[u8]) -> IResult<&[u8], Message> {
 
 I got curious about these bitwise parsers because of [Advent of Code 2021, day 16](https://adventofcode.com/2021/day/16). A few weeks later, I wanted to [build a DNS client][dingoheader], and realized that parsing the u4s or single-bit flags is easy with Nom. In my next blog post, we'll look at how to parse a real-world example with bitstreams: DNS message headers.
 
+---
+
+#### Footnotes
+
 [^1]: Take a look at its [type signature](https://docs.rs/nom/7.1.0/nom/bits/complete/fn.take.html). The generics are, roughly:
 - `input: I` must be something that works like a binary stream
 - `count: C` must be some uint type (with [some caveats][tousize])
