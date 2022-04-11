@@ -58,7 +58,27 @@ This was my first time actually reading an RFC top-to-bottom, and I was surprise
 
 I've never been very comfortable with sockets. I tried reading [Beej's guide to socket programming](beej) back in college, but I didn't really have the necessary OS, networking or C skills to make it through. I know about TCP and UDP, but I knew nothing about the lower-level abstractions that unify them. 
 
-This project was the first time I had to open a UDP socket -- in my regular programming, I've just relied on some networking library to handle that low level detail. So, I read through the [Rust docs for UDP sockets](stdlibudp), which are remarkably clear. A lot of the methods on UdpSocket correspond directly to Linux syscalls. When I later went back and read [Beej's socket guide](beej) properly, it was really easy. All these syscalls were familiar -- they're just Rust stdlib networking methods!
+This project was the first time I had to open a UDP socket -- in my regular programming, I've just relied on some networking library to handle that low level detail. So, I read the [Rust docs for UDP sockets](stdlibudp), which are remarkably clear. A lot of the methods on UdpSocket correspond directly to Linux syscalls. When I later went back and read [Beej's socket guide](beej) properly, it was really easy. All these syscalls were familiar -- they're just Rust stdlib networking methods!
+
+In fact, if I use `dtruss` (a MacOS tool for inspecting which syscalls your programs make[^syscall]), I can see exactly what syscalls my program is using:
+
+```bash
+$ sudo dtruss dingo -t A www.twitter.com
+# Skipping lots of syscalls just for starting a process on MacOS...
+getentropy(0x7FF7BE8734E0, 0x20, 0x0)  = 0 0 # Used by `rand` to generate a random DNS request ID
+socket(0x2, 0x2, 0x0)  = 3 0 # Create the UDP socket, aka "file descriptor 3"
+ioctl(0x3, 0x20006601, 0x0)  = 0 0 # Not sure, something about the UDP socket
+setsockopt(0x3, 0xFFFF, 0x1022)  = 0 0 # Set the options on the UDP socket
+bind(0x3, 0x7FF7BE87346C, 0x10)  = 0 0 # Bind the UDP socket to a local address
+setsockopt(0x3, 0xFFFF, 0x1006)  = 0 0 # Set more options, dunno why it needs more...
+connect(0x3, 0x7FF7BE873584, 0x10)  = 0 0 # Connect to the remote DNS resolver
+sendto(0x3, 0x7FAE060041F0, 0x21)  = 33 0 # Send the request to the remote DNS resolver
+recvfrom(0x3, 0x7FAE060043F0, 0x200)  = 79 0 # Get the response from the remote DNS resolver
+close_nocancel(0x3)  = 0 0 # Close the UDP socket
+# Skipping lots of syscalls just for ending a process on MacOS
+```
+
+The syscalls `connect`, `sendto` and `recvfrom` are all from calling Rust methods `UdpSocket::{connect, send_to, recv_from}` -- they translate 1:1 into syscalls! That's really cool.
 
 ## Bitvec
 
@@ -118,6 +138,11 @@ MC is a neat feature that DNS servers can use to reduce the size of their respon
 
 This is one of my favourite projects I've done. My career goal for this year is to learn a lot more about Linux and networking. Writing dingo taught me a lot about one of the fundamental building blocks of the internet and how real operating systems handle it. If you're trying to learn more about low-level programming, a DNS client is a perfect challenge. It's got bitwise arithmetic, parsing, UDP networking, IP addresses and DNS hostnames. You'll learn a lot. In fact, after I wrote dingo, my friend Jesse Li [wrote his own DNS client in Python](https://twitter.com/__jesse_li/status/1504509199253966850). Clearly writing a DNS client is the hot new trend that you've got to get on. You should comment below if you try it :)
 
+---
+
+#### Footnotes
+
+[^syscall]: Syscalls are like functions the operating system defines, so the operating system can manage risky operations like I/O. Dtruss is a MacOS version of `strace`, a Linux tool. I learned how to use `strace` from Julia Evans' [great strace comics](https://wizardzines.com/zines/strace/) which I _highly_ recommend, I learned so much from it. Now when I write a program, I can spy on exactly what the compiled code is _actually_ doing when it runs my functions.
 
 [clap]: https://crates.io/crates/clap
 [Nom]: https://docs.rs/nom
