@@ -50,6 +50,8 @@ I named it Dingo because it sounded like `dig`, and it reminds me of Australia, 
 
 ![Screenshot of a terminal running dingo, my DNS client, and resolving a name](/making-a-dns-client/dingo_screenshot.png)
 
+It's pretty fast -- `dig` took 0.225 seconds on average to resolve A records for adamchalmers.com, and `dingo` took 0.028 seconds (both using 1.1.1.1 as the DNS resolver). Don't read too much into these numbers -- dig supports far more DNS features than my toy project. I'm only posting latency to prove my code isn't stupidly slow :)
+
 You can install it or read the finished code [on GitHub][dingo]. 
 
 # What did I learn?
