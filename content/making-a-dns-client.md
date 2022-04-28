@@ -142,7 +142,7 @@ Enums are such a great way to express domain logic. Functional programmers have 
 
 ## Message compression (MC)
 
-MC is a neat feature that DNS servers can use to reduce the size of their responses. Instead of repeating the same hostname multiple times in the response, MC replaces a hostname with a pointer back to a previously-cited hostname. The RFC actually [explains it really well](https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.4). MC helps servers fit their DNS responses into a single UDP packet, which is important because UDP is unreliable and doesn't care about truncated packets. MC requires looking _back_ at the previously-parsed bytes, but Nom only lets you look _ahead_ at remaining, unparsed bytes. It took several attempts before I could support MC in a nice, idiomatic Nom way ([code][msgcmprcode]), so that cost me another weekend of work.
+MC is a neat feature that DNS servers can use to reduce the size of their responses. Instead of repeating the same hostname multiple times in the response, MC replaces a hostname with a pointer back to a previously-cited hostname. The RFC actually [explains it really well](https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.4). MC helps servers fit their DNS responses into a single UDP packet, which is important because UDP is unreliable and doesn't care about truncated packets. MC requires looking _back_ at the previously-parsed bytes, but Nom only lets you look _ahead_ at remaining, unparsed bytes. It took several attempts before I could support MC in a nice, idiomatic Nom way ([code][msgcomprcode]), so that cost me another weekend of work.
 
 # Conclusion
 
