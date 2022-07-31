@@ -34,7 +34,7 @@ fn insert<T: Send + Sync + 'static>(&mut self, val: T) -> Option<T>
 fn get<T: Send + Sync + 'static>(&self) -> Option<&T>
 ```
 
-Why don't they have a key? Remember that `Extensions` can only store one value for a particular type. So if the Rust compiler knows what type you're inserting and getting, then it knows how to find the value.
+Why don't they have a key? Remember that `Extensions` can only hold one value for a particular type. So if the Rust compiler knows what type you're inserting and getting, then it knows how to find the value.
 
 ```rust
 use http::Extensions;
@@ -55,7 +55,7 @@ OK, so, `Extensions` are from the `http` crate, and they're just a set of values
 
 ## Passing extra information to handlers
 
-A handler function is some function that accepts a request and returns a response. This definition is a little abstract, because there are handlers in all sorts of protocols -- HTTP, gRPC, your own custom protocol -- and they all use slightly different types. Handlers can be either async or blocking depending on your framework. 
+A handler function is some function that accepts a request and returns a response. This definition is a little abstract, because there are handlers in all sorts of protocols -- HTTP, gRPC, your own custom protocol -- and each protocol has several different libraries. So every library/protocol combination represents handlers slightly differently. Sometimes they're synchronous, sometimes they're async, sometimes they're methods, sometimes they're functions. Abstract concept, lots of different ways to make it concrete.
 
 [Axum][axum]'s docs have an example of a handler:
 
@@ -142,9 +142,11 @@ impl RouteGuide for RouteGuideService {
 
 Extensions aren't as common in Tonic, because the problem of "how do I pass whatever types of parameters I want into my handlers" has an easier answer: just use fields of `self`.
 
-But! That won't always work, because `self` is shared between every invocation of every handler. What if you want to pass a value for one request, specifically? For example, giving it log context. At Cloudflare we use structured logging (every log line has to be a JSON object, so they can be aggregated and filtered). I want to make sure that every log emitted by my handler logs some important context about the request, e.g. its URI, the User-Agent, and a unique-per-request ID. 
+But! That won't always work, because `self` is shared between every invocation of every handler. `self` is great for _server state_, because every request to the server can read or mutate it. But what if you want to pass a value for one request, specifically? _Request state_, you could say. Here's an example.
 
-(aside: all the following code is [on GitHub](https://github.com/adamchalmers/tonic-extensions/blob/master/src/request_context.rs) in a full example project)
+At Cloudflare we use structured logging (every log line has to be a JSON object, so they can be aggregated and filtered). I want to make sure that every log emitted by my handler logs some important context about the request, e.g. its URI, the User-Agent, and a unique-per-request ID. This is all _request state_ -- each request has a different value of these fields from other requests. Obviously storing this data in `self` won't work.
+
+(aside: all the following code is [on GitHub](https://github.com/adamchalmers/tonic-extensions/blob/master/src/request_context.rs) in a full example project. I'm going to explain it piece-by-piece here, but you  in a full example project. You might prefer reading it there, or in your IDE)
 
 It's easy to extract this information from the HTTP request, and using [slog][slog] it's easy to create a logger instance that always logs those fields. 
 
@@ -194,27 +196,32 @@ impl From<&hyper::Request<Body>> for RequestContext {
 But how should the handler make its `RequestContext`? At work, my initial solution was:
 
 1. The server object has a logger, configured when the program starts (i.e. outputs JSON to stderr, on its own thread so my gRPC handler tasks don't block waiting for the log mutex)
-2. When a gRPC handler is invoked, it creates its own request-specific logger from that server-wide logger, like this: 
+2. When a gRPC handler is invoked, it clones the logger from `self`.
+3. The gRPC handler immediately creates its own request-specific logger from that server-wide logger, like this: 
 ```rust
 let req_ctx = RequestContext::from(&request)
 let logger = req_ctx.into_logger(self.logger.clone())
 ```
-3. Every handler should remember to use its request-specific `logger` object instead of `self.logger`.
+4. Every handler should remember to use its request-specific `logger` object instead of `self.logger`.
 
 But I don't want to rely on programmers (including my future self) remembering to do the right thing all the time. A better solution would _force_ every gRPC handler to use their own request-specific logger with those fields. So my new plan was:
 
 1. The server _does not_ have a `self.logger` property. Instead it creates a [tower][tower] middleware with a logger. 
-2. The middleware runs before every handler function, and creates a request-specific logger from the request context.
-3. The handler function uses that request-specific logger, because it can't get a logger from anywhere else.
+2. The handler functions _can no longer_ get a logger from `self`.
+3. The middleware runs before every handler function, and creates a request-specific logger from the request context.
+4. The handler function uses that request-specific logger, because it can't get a logger from anywhere else.
 
-But how does the middleware send a value to the handler function? Using `Extensions`! The real example has a lot of boilerplate, so I'm only showing you the important part, where the middleware creates the logger and sends it to the request. 
+But how does the middleware send a value to the handler function? Using `Extensions` of course! 
 
 ```rust
 // From https://github.com/adamchalmers/tonic-extensions/blob/master/src/middleware.rs
+// I've skipped a lot of Tower boilerplate, but this is basically the middleware --
+// it takes a request, calls the underlying handler, then returns a response.
 fn call(&mut self, mut req: hyper::Request<Body>) -> Self::Future {
-    // Before the handler:
+    // Before the handler, set up the request-specific logger:
     let req_ctx = RequestContext::from(&req);
     let logger = req_ctx.into_logger(self.log.clone());
+    // Put it in the request's extensions, so the handler can get it.
     req.extensions_mut().insert(logger.clone());
     // Call the handler:
     let resp = Box::pin(inner.call(req));
@@ -231,6 +238,7 @@ pub struct MyGreeter;
 
 #[tonic::async_trait]
 impl Greeter for MyGreeter {
+    /// Handler function for the SayHello gRPC endpoint
     async fn say_hello(
         &self,
         request: Request<HelloRequest>,
@@ -248,7 +256,7 @@ impl Greeter for MyGreeter {
 }
 ```
 
-The handler function has **no other way** to get a logger, *except* the logger from the middleware. The one downside is that there's no way to know (at compile time) that the `Extensions` will have a logger, so at runtime, our handler has to do a `get()` which returns `Option<Logger>`, and unwrap it. This means our server will panic if the programmer forgot to set the logger on the `Extensions`. This kinda bothers me, but in practice, our middleware is so simple that it's not going to be a problem. I guess if our middleware gets so complicated that I need static guarantees that the logger is always there, I can refactor this and write a follow-up blog :)
+The handler function has **no other way** to get a logger, *except* the logger from the middleware. The one downside is that there's no way to know (at compile time) that the `Extensions` will have a logger, so at runtime, our handler has to do a `get()` which returns `Option<Logger>`, and unwrap it. This means our server will panic if the programmer forgot to set the logger on the `Extensions`. This kinda bothers me, but in practice, our middleware is so simple that it's not going to be a problem. I guess if our middleware gets so complicated that I need static guarantees that the logger is always there, I can refactor this and write a follow-up blog :) Please leave a comment if you have any suggestions on how to make the panic impossible!
 
 ## Passing information _from_ handlers back to middleware
 
@@ -259,14 +267,15 @@ Let's continue the structured logging example. In my real work project, my servi
 ```rust
 // From https://github.com/adamchalmers/tonic-extensions/blob/master/src/middleware.rs
 fn call(&mut self, mut req: hyper::Request<Body>) -> Self::Future {
-    // Before the handler:
+    // Before the handler, set up the request-specific logger:
     let req_ctx = RequestContext::from(&req);
     let logger = req_ctx.into_logger(self.log.clone());
+    // Put it in the request's extensions, so the handler can get it.
     req.extensions_mut().insert(logger.clone());
     // Call the handler:
     let resp = Box::pin(inner.call(req));
     // After the handler:
-    // THIS IS THE NEW LINE
+    // THIS IS THE NEW LINE I ADDED: Emit a log after each request.
     info!(logger, "Handled a request") 
     resp
 }
@@ -295,13 +304,13 @@ Step two, the middleware reads that value.
 ```rust
 // From https://github.com/adamchalmers/tonic-extensions/blob/master/src/middleware.rs
 fn call(&mut self, mut req: hyper::Request<Body>) -> Self::Future {
-    // Before the handler:
+    // Send information from the middleware to the handler:
     let req_ctx = RequestContext::from(&req);
     let logger = req_ctx.into_logger(self.log.clone());
     req.extensions_mut().insert(logger.clone());
     // Call the handler:
     let resp = Box::pin(inner.call(req));
-    // After the handler:
+    // Get information from the handler into this midddleware:
     let name = response.extensions.get::<String>().unwrap();
     let logger = logger.new("name" => name);
     info!(logger, "Handled a request") 
@@ -311,17 +320,27 @@ fn call(&mut self, mut req: hyper::Request<Body>) -> Self::Future {
 
 ### Tip: use newtypes with Extensions
 
-Remember that `Extensions` can only have one value per type. It makes sense to store the name as a String. But this will cause problems if we want to put multiple strings into the `Extensions`, e.g. what if we need to log the "first name" and "surname" separately? Then we'd have two strings in the set, and one would overwrite the other. This could be especially bad in a large codebase, where multiple programmers are working in it. Imagine if I stored the name as a string in the extensions, and my coworker Olivia stored some authentication token as a string too. We'd need to coordinate and make sure nobody was using the same type in the extensions, otherwise our app might break horribly. 
+Remember that `Extensions` can only have one value per type. In my example, my `Extensions` store the name as a String. But this will cause problems if we want to put multiple strings into the `Extensions`, e.g. what if we need to log the "first name" and "surname" separately? Then we'd have two strings in the set, and one would overwrite the other. This could be especially bad in a large codebase, where multiple programmers are working in it. Imagine if I stored the name as a string in the extensions, and my coworker Olivia stored some request-specific authentication token as a string too. We'd need to coordinate and make sure no two programmers set the same type in the extensions, otherwise our app might break horribly. 
 
-The solution is to avoid storing standard Rust types in `Extensions`. Instead, use a newtype like `struct Name(String)`. That way, the `Extensions` can distinguish this particular string from any other strings you might want to include. Later on, we could change it to be `struct Names{first_name: String, last_name: String}` or use two structs, `FirstName(String)` and `LastName(String)`. In the full example code, that's exactly what I do.
+The solution is to avoid storing standard Rust types in `Extensions`. Instead, use a newtype like `struct Name(String)`. That way, the `Extensions` can distinguish this particular string from any other strings you might want to include. Later on, we could change it to be `struct Names{first_name: String, last_name: String}` or use two structs, `FirstName(String)` and `LastName(String)`. In the [full example code][name_newtype], that's exactly what I do.
 
 # Summary/TLDR
 
-Extensions come from [`http::Extensions`][http_extns] and get used by a lot of web libraries that build on the http crate. The `Extensions` type is just a set of values, where no two values can have the same type. This means, for any particular concrete type, you can query the set and get a value of that type (if it exists). This lets the different parts of your web server share data, in a way that's still _kinda_ type safe (if you ask for a `PostgresDbPool`, you'll get `Option<PostgresDbPool>`) but kinda dynamic (at compile-time, your web server can't be sure which types of values will be set in the extension, so you have to handle failure or panic if you need that `PostgresDbPool` and it's not there).
-
-This lets you:
- - Pass a database connection from your router to your handler functions
- - Pass loggers or logging context from your request middleware to your handler functions, then back to your response middleware
+* Extensions come from [`http::Extensions`][http_extns] and get used by a lot of web libraries that build on the http crate. 
+* The `Extensions` type is just a set of values, where no two values can have the same type. 
+* You can insert a value into the Extensions, and get a value by type.
+* This lets the different parts of your web server share data:
+  * You can pass server state to your handlers
+  * You can pass request state from your middleware into handlers
+  * You can pass request state from handlers back to your middleware
+* For example:
+  * Pass a database connection from your router to your handler functions
+  * Pass a connection to _one of many possible_ databases, depending on the request, to your handlers
+  * Pass request-specific loggers from your middleware to your handlers
+  * Send data from the handler back to the response middleware, like log fields or metrics or events
+* Are extensions typesafe?
+  * Yes: If you query for `PostgresConn` you'll get `Option<&PostgresConn>`.
+  * No: Even though you _know_ you're setting a `PostgresConn`, the request always gets `Option<&PostgresConn>`, so it always needs to handle the `None` case, even though you _know_ you set it. This can be awkward.
 
 I have some more examples of how Extensions can be useful, but this post is long enough. So, expect a second post with more Extensions examples. I'd love to hear how you're using Extensions, because I'm still pretty new to them. Please let me know in the comments, or [on twitter][twitter_question].
 
@@ -329,12 +348,8 @@ And, as always, if you want to get _paid_ to talk about Rust with me, Cloudflare
 
 ---
 
-#### Footnotes
-
-[^foo]: bar
-
-
 [actix_web_extns]: https://docs.rs/actix-web/latest/actix_web/dev/struct.Extensions.html
+[any]: https://doc.rust-lang.org/stable/std/any/trait.Any.html
 [axum_todo_ext]: https://github.com/tokio-rs/axum/blob/1fe45583626a4c9c890cc01131d38c57f8728686/examples/todos/src/main.rs#L88
 [axum]: https://docs.rs/axum
 [slog]: https://docs.rs/slog
@@ -344,6 +359,7 @@ And, as always, if you want to get _paid_ to talk about Rust with me, Cloudflare
 [tonic_extns]: https://docs.rs/tonic/latest/tonic/struct.Extensions.html
 [tonic]: https://docs.rs/tonic
 [tower]: https://docs.rs/tower
+[name_newtype]: https://github.com/adamchalmers/tonic-extensions/blob/2d8e0421817701c56217026bf542d30db52140e4/src/server.rs#L17
 [twitter_question]: https://twitter.com/adam_chal/status/1551229417208389635
 [typeid]: https://doc.rust-lang.org/stable/std/any/struct.TypeId.html
 [routeguide]: https://github.com/hyperium/tonic/blob/23c1392fb7e0ac50bcdedc35509917061bc858e1/examples/src/routeguide/server.rs#L28
