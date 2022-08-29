@@ -8,11 +8,15 @@ draft = false
 tags = ["rust", "programming", "web", "streams", "axum", "multipart"]
 +++
 
-Last week in [Tokio's Discord chat server][tokiodiscord] someone asked a really interesting question about streaming proxies. How can you stream a multipart body from an incoming request into an outgoing request? My struggle to answer this really helped me understand Rust async lifetimes. We'll go _why_ this is tricky, then design and benchmark a solution. 
+Last week in [Tokio's Discord chat server][tokiodiscord] someone asked a really interesting question: how can you stream a multipart body from an incoming request into an outgoing request? My struggle to answer this really helped me understand Rust async lifetimes. We'll explore _why_ this is tricky, then design and benchmark a solution. 
 
 <!-- more -->
 
 Note: all the code is in a full [GitHub example][ghexample].
+
+---
+
+The question was:
 
 > I'm rather new to Rust, so perhaps I'm trying to bite off more than I can chew, but I can't find any way to stream an `axum::extract::multipart::Field` to the body of a PUT request made with reqwest. Obviously, waiting for all the bytes works just fine, as in this test handler:
 
@@ -56,9 +60,9 @@ But it turned out to be harder than I thought.
 
 # Why streaming instead of buffering?
 
-Why not just buffer the whole body into memory? Is streaming really that important? Well, yeah -- if you're building a proxy, streaming is worth the extra headache. Streaming beats buffering for two reasons:
+Why not just buffer the whole body into memory? Is streaming really that important? Well, yeah -- if you're building a proxy, streaming is worth the extra headache, for two reasons:
 
-First, **latency** is worse with buffering. Your proxy has to buffer everything from the client before sending everything to the server. This _doubles_ the latency of requests (assuming all three hosts are equidistant). You have to wait _n_ seconds for the request to reach the proxy, then _n_ seconds to transmit it to the server. But if your proxy used streams, you could get the first few bytes from the client, and send them to the server while you waited for the next few bytes from the client.
+First, **latency** is worse with buffering. Your proxy has to buffer the entire request from the client before sending it to the server. This _doubles_ the latency of requests (assuming all three hosts are equidistant). You have to wait _n_ seconds for the request to reach the proxy, then _n_ seconds to transmit it to the server. But if your proxy used streams, you could get the first few bytes from the client, and send them to the server while you waited for the next few bytes from the client.
 
 Second, **memory** overhead is _huge_ with buffering. Say you're proxying a 10gb MacOS system update file. If you buffer every request into memory, your server can't handle many parallel requests (probably <10). But with streaming, you can get the first _n_ bytes the client, proxy them to the server, and then free them. No more crashing the process because it ran out of memory.
 
@@ -72,7 +76,9 @@ Axum's [`Multipart` extractor][mpx] owns the incoming request body. It has a met
 
 Clearly the field can't outlive the Multipart, because then Field would be pointing at data that is no longer there. Rust borrow checker stops us from doing that. So far so good.
 
-You can read data from a stream, either by reading the whole thing into memory (as above), or using the Stream trait. This trait is defined by the Futures crate [here](https://docs.rs/futures/latest/futures/prelude/trait.Stream.html) and implemented [here](https://docs.rs/axum/latest/axum/extract/multipart/struct.Field.html#impl-Stream-for-Field%3C%27a%3E). Streams are basically asynchronous iterators. When you try to get the next value from them, it might not be ready yet, so you have to `.await`. This is perfect for reading HTTP request bodies, because you can start processing the body as it comes in piece-by-piece. You don't have to wait for the entire body to be available. This saves you time and maybe RAM, if you don't actually need to store the entire body.
+You can read data from a stream, either by reading the whole thing into memory (as above), or using the Stream trait. This trait is defined by the Futures crate [here](https://docs.rs/futures/latest/futures/prelude/trait.Stream.html) and implemented [here](https://docs.rs/axum/latest/axum/extract/multipart/struct.Field.html#impl-Stream-for-Field%3C%27a%3E). Streams are basically asynchronous iterators. When you try to get the next value from them, it might not be ready yet, so you have to `.await`. This is perfect for reading HTTP request bodies, because you can start processing the body as it comes in piece-by-piece. If the next bytes aren't available, your runtime (e.g. Tokio) will switch to a different task until the data arrives. 
+
+This means you don't have to wait for the entire body to be available, saving time and maybe RAM, if you don't actually need to store the entire body.
 
 So, now we know how to stream data _out_ of the body. What about streaming data _into_ a new request's body?
 
@@ -81,14 +87,16 @@ We'll use [reqwest](docs.rs/reqwest) as the HTTP client. Reqwest can send variou
 Why does reqwest only allow static streams to be bodies? I asked its creator [Sean McArthur][sean].
 
 > Sean: Internally the connection is in a separate task, to manage connection-level stuff (keep alive, if http2: pings, settings, and flow control). The body gets sent to that connection task
+
 > Adam: So basically the connection task takes ownership of all request bodies? And therefore bodies have to be 'static because they need to be moved into that task? 
+
 > Sean: Exactly
 
 But there _is_ a solution. The field type is `Field<'a>`, so it's generic over various possible lifetimes. We just need to make sure that the _specific_ lifetime our server uses is `'static`.
 
 # The solution
 
-The key idea here is that the `Multipart` object itself is `'static`. Why? Because it's not borrowed. The `next_field` type signature is `next_field(&mut self) -> Field<'_>`. What's that `'_`? That's an _elided lifetime_. Basically these two signatures are equivalent:
+Note that the `Multipart` object itself is `'static`. Why? Because it's not borrowed. The `next_field` type signature is `next_field(&mut self) -> Field<'_>`. What's that `'_`? That's an _elided lifetime_. Basically these two signatures are equivalent:
 
 ```rust
 fn next_field(&'a mut self) -> Field<'a>
@@ -97,7 +105,7 @@ fn next_field(&mut self) -> Field<'_>
 
 So, the field type is `Field<'a>`, but that `'a` is generic. Its definition works for any possible lifetime. We just have to make sure that when our server's handler is compiled, it knows that `'a` is `'static`. 
 
-The key insight is that, if you want to use a stream as a reqwest body, it can't borrow anything. Because if it borrowed data from some other value on some other thread, what happens if that thread dies? Your body would keep reading from the freed memory, and Rust won't let that happen. This means _the stream has to own all the data being streamed_. 
+The key insight is that, if you want to use a stream as a reqwest body, it can't borrow anything. Because if it borrowed data from some other thread which owns data, what happens if the owning thread dies? Your body would keep reading from the freed memory, and Rust won't let that happen. This means _the stream has to own all the data being streamed_. 
 
 So, the stream needs to own the `Multipart`! After all, the multipart owns the data, and the stream has to own the data. So the stream has to own the multipart.
 
@@ -113,8 +121,11 @@ struct MultipartStream(extract::Multipart);
 impl MultipartStream {
     /// Stream every byte from every field.
     fn into_stream(mut self) -> impl Stream<Item = Result<Bytes, MultipartError>> {
+        // Create a stream using crates.io/crates/async-stream
         async_stream::stream! {
             while let Some(field) = self.0.next_field().await.unwrap() {
+                // Special syntax from the stream! macro.
+                // Basically streams items out of the `field` stream.
                 for await value in field {
                     yield value;
                 }
@@ -128,7 +139,7 @@ We make a [newtype] for converting a Multipart into a Stream. I'm Very Creative 
 
 All this means that the stream doesn't borrow anything. It owns all its data -- both the multipart and its fields -- so the stream is `'static`. Now you can pass it to `reqweset::Body::wrap_stream`. 
 
-Note: the `into_stream` example is very rudimentary -- in a real server you might want to only stream certain fields, or maybe filter out fields, or maybe only stream the _nth_ field. 
+Note: the `into_stream` example is very rudimentary -- it concatenates all the fields together. This probably wouldn't be useful. In a real server you might want to only stream certain fields, or maybe filter out fields, or maybe only stream the _nth_ field. 
 
 The last thing to do is actually _use_ this `MultipartStream` wrapper in our endpoint. 
 
@@ -166,9 +177,9 @@ async fn proxy_upload_streaming(
 
 Note, this example uses Axum 0.6.0-rc.1 with its new [State][state] types. It's possible that it might change a little before the final 0.6 release. See [the announcement][axum06rc] for more. State is basically like an Axum extension where the compiler can guarantee it's always set. This perfectly solves the problem my [previous post about Axum](/what-are-extensions) complained about, where _I_ know the extension is always set, but the compiler doesn't, so I need a dubious `.unwrap()`
 
-# Benchmarks?
+# Benchmarks
 
-I ran some benchmarks on the repo. Basically I used `curl` to send the proxy server a Multipart body with 20 copies of the Unix wordlist. Then the server proxied it to a second server, which prints it. I ran it with a streaming proxy and a buffered proxy. You can see the full setup in the [GitHub example][ghexample]. 
+I ran some benchmarks on the repo. Basically I used `curl` to send the proxy server a Multipart body with 20 copies of the Unix wordlist. Then the server proxied it to a second server, which prints it. I compared the streaming proxy above, with a proxy that buffers everything. You can see the full setup in the [GitHub example][ghexample]. 
 
 Because I ran this all locally, I don't expect much difference in total time. After all, the latency between processes running on my Macbook is pretty low. So doubling the latency won't matter much, because the latency is nearly zero anyway. But I expect the RAM usage to be very different.
 
@@ -177,14 +188,14 @@ Because I ran this all locally, I don't expect much difference in total time. Af
 | Streaming | 0.10            | 16       |
 | Buffering | 0.32            | 128      |
 
-Yep, that checks out.
+Yep, streaming saves a lot of memory.
 
 # Takeaways
 
 * reqwest connections are handled in their own thread, so they need to own their bodies.
- * This is just a design choice -- other HTTP libraries could work differently, although [tide] and [actix web client][awc] also require streaming bodies be `'static`. 
- * I think this is partly because of the Tokio runtime, and other runtimes might not require 'static, see [this talk][glommiotalk] from the creator of [glommio].
-* `'static` means "either isn't borrowed, or is borrowed for the entire runtime of the program"
+  * This is just a design choice -- other HTTP libraries could work differently, although [tide] and [actix web client][awc] also require streaming bodies be `'static`. 
+  * I think this is partly because of the Tokio runtime, and other runtimes might not require 'static, see [this talk][glommiotalk] from the creator of [glommio].
+* `'static` means "this value either isn't borrowed, or is borrowed for the entire runtime of the program"
 * A static stream can't borrow any data
 * Implementing your own streams with [async-stream] is pretty easy
 
