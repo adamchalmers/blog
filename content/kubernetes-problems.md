@@ -374,13 +374,19 @@ To recap:
   - Rules are executed by an [IngressController]. Your cluster admins have probably already set one up
  - Isolate teams and projects from each other with [Namespaces].
 
-_Big thanks to [Sana Oshika], [Jesse Li] and [Mingwei Zhang] for really helpful feedback on drafts of this post. Follow me on [my twitter] for more_
+_Big thanks to [Sana Oshika], [Jesse Li] and [Mingwei Zhang] for really helpful feedback on drafts of this post. And a very special thank you to [Tim] and [Terin] from Cloudflare, who have really gone above and beyond the call of duty to help onboard k8s beginners. They're always answering questions and improving the developer experience. They really exemplify what a good platform team should be like._
 
 ## Related reading
 
-If you're new to containers, I really liked [The Increment's issue all about them][increment-containers]. I also really like [Ivan Velichko's blog][ivan] for learning about Kubernetes and docker internals. Jessie Frazelle's blog is full of really cool container ecosystem bits and pieces, mostly focused on security, but I really liked this piece about [running all her desktop apps in Docker][frazelle]. 
+If you're new to containers, I really liked [The Increment's issue all about them][increment-containers]. It's got _lots_ of helpful articles.
 
-I bookmarked this [article on debugging Kubernetes pods][debugging-pods] back in 2018 when I was first working with k8s, it was incredibly helpful and I kept referring back to it. I've also started using [k9s], a nice terminal UI for Kubernetes. It's much easier than repeatedly typing `kubectl get pods`, copy the pod ID, then `kubectl describe pod <id>`. It's awesome. 
+I really like [Ivan Velichko's blog][ivan] for learning about Kubernetes and docker internals.
+
+Jessie Frazelle's blog is full of really cool container ecosystem bits and pieces, mostly focused on security, but I really liked this piece about [running all her desktop apps in Docker][frazelle].
+
+I bookmarked this [article on debugging Kubernetes pods][debugging-pods] back in 2018 when I was first working with k8s, it was incredibly helpful and I kept referring back to it.
+
+I've also started using [k9s], a nice terminal UI for Kubernetes. It's much easier than repeatedly typing `kubectl get pods`, copy the pod ID, then `kubectl describe pod <id>`. It's really made exploring my kubernetes projects much easier.
 
 ## Footnotes
 
@@ -414,5 +420,7 @@ I bookmarked this [article on debugging Kubernetes pods][debugging-pods] back in
 [Restart Policy]: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy
 [Sana Oshika]: https://www.oshika.dev
 [Sidecar pattern]: https://learnk8s.io/sidecar-containers-patterns
+[Terin]: https://twitter.com/terinjokes
+[Tim]: https://twitter.com/pims
 [updating a deployment]: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#updating-a-deployment
 [venv]: https://docs.python.org/3/library/venv.html
