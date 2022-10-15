@@ -86,7 +86,7 @@ By the way, whenever I Capitalize a Word making it into a Proper Noun, that's be
 
 ## Problem: I want to run a container
 
-Let's start simple. You've been working on a project code-named `kangaroo` and it's ready for deployment. So you build a container for deploying it, tagged `kangaroo-backend`. Your workplace runs their services in a Kubernetes cluster, so you need to deploy this container into the cluster. You want a Kubernetes [Pod], which is a set of one or more containers (usually just one container, though). You define a Pod like this:
+Let's start simple. You've been working on a project code-named `kangaroo` and it's ready for deployment. So you build a container image to run it: `kangaroo-backend`. Your workplace runs their services in a Kubernetes cluster, so you need to deploy this container into the cluster. How? You need to define a Kubernetes [Pod]. A pod is a set of one or more containers (usually just one container, though[^sidecars]). Pods are the **minimum unit of deployment** in Kubernetes. It's the simplest, smallest thing you can deploy in k8s. So let's define a Pod that runs our container, like this:
 
 ```yaml
 apiVersion: v1
@@ -103,12 +103,12 @@ spec:
 
 This YAML defines a new k8s resource, which you can deploy to your cluster. All resources, regardless of what you're deploying, have four properties:
 
- - apiVersion: When you write APIs, you probably include a "v1" at the start just in case you need to make a backwards-incompatible change later. Well, the Kubernetes committee do the same thing. This way if they need to change the definition of a resource, they can.
+ - apiVersion: Which version of the k8s resource definition to use. Resource definitions (like Pod) have a version so the Kubernetes committee can change the definition later, without breaking everyone using the old version. When you write APIs, you probably include a "v1" at the start just in case you need to make a backwards-incompatible change later. Well, the Kubernetes committee do the same thing.
  - kind: All resources are of a particular kind -- in this case, a Pod.
  - metadata: Key-value pairs that you can use to query and organize the resources in your cluster
  - spec: The details of what you're deploying. Every kind has a spec. E.g. the Pod kind of resource has to have a `containers` key with an array of containers, each of which has an `image`. 
 
-We're deploying a pod, which is one or more containers (usually just one), so we've set `kind: Pod` and have to provide the right `spec`. Here our spec says we're running one container, tagged `kangaroo-backend:1.14.2`. We also let Kubernetes know that the container will be listening on port 80.
+We're deploying a pod, which is one or more containers (usually just one), so we've set `kind: Pod` and have to provide the right `spec`. Here our spec says we're running one container, image `kangaroo-backend:1.14.2`. We also let Kubernetes know that the container will be listening on port 80.
 
 OK! If we save this as `pod.yaml` we can deploy it by running `kubectl apply -f pod.yaml`. Congratulations, you just deployed a container to your k8s cluster.
 
@@ -186,7 +186,7 @@ Project Kangaroo is becoming more popular, and you're getting too much traffic f
 
 Every week, you release a new version of the Kangaroo backend. The first time you did this, you just deleted the deployment and created a new deployment with a newer version of the kangaroo-backend container. This worked, but it caused a few minutes of downtime, which you're really trying to avoid. How can you deploy new versions with zero downtime?
 
-This is a really common problem, so Kubernetes Deployments already support this. It's called [updating a deployment] and it's easy. Just edit the deployment (either using the `kubectl edit` CLI, or by editing your YAML manifest, changing the container version, and rerunning `kubectl apply`). Kubernetes' declarative management kicks in, and notices that the deployment you currently have (on container `kangaroo-backend:1.15`) is not the same as what you want (`kangaroo-backend:1.16`). So it will do a _rolling upgrade_: one at a time, it will
+This is a really common problem, so Kubernetes Deployments already support this. It's called [updating a deployment] and it's easy. Just edit the deployment (either using the `kubectl edit` CLI, or by editing your YAML manifest, changing the container image, and rerunning `kubectl apply`). Kubernetes' declarative management kicks in, and notices that the deployment you currently have (on container `kangaroo-backend:1.15`) is not the same as what you want (`kangaroo-backend:1.16`). So it will do a _rolling upgrade_: one at a time, it will
 
 1. Notice that the cluster's actual state doesn't match the declared spec (it doesn't have enough replicas on version 1.16)
 2. Start a new pod on version 1.16
@@ -194,16 +194,6 @@ This is a really common problem, so Kubernetes Deployments already support this.
 4. Notice that there's a pod (kangaroo-backend:1.16) that isn't part of any declared spec, so bring the system in line with the declared spec by stopping the pod.
 
 ![A kubernetes doing a rolling upgrade of the pods in a deployment](/kubernetes-problems/rolling-upgrade.png)
-
-## Problem: I want isolation from other teams using the same cluster
-
-Say you've got a Deployment that matches any pods with the labels `role: backend`. This works fine -- you write a pod tempalte with the label `role: backend`, and it gets replicated in the Deployment. What if another team deploys a Pod of their own with `role: backend`? You don't want to accidentally replicate another team's stuff!
-
-One solution would be to always add a little prefix to those labels, so instead of `backend` your teams agree to use labels like `kangaroo-backend` and `emu-backend`. This relies on everyone having the discipline to keep to the rules. Even if everyone agrees, eventually someone might make a mistake, slip up, and deploy something with the wrong label. This could cause serious problems! Imagine if you accidentally replicated a service that was supposed to be a singleton!
-
-Luckily Kubernetes has a built-in way to isolate teams from each other. It's called a [Namespace]. They let you isolate teams or projects from each other, so their names don't clash. Just like how multiple Rust projects can export symbols with the same name, for example, `std::Option::map` and `futures::StreamExt::map`. Just use `--namespace` in the kubectl CLI to choose which namespace you want to deploy to. 
-
-> Note: at Cloudflare, we usually use two namespaces per team, e.g. "datalossprevention-staging" and "datalossprevention-production". Then when we deploy new K8s changes, we can deploy them in staging to make sure they work, and then deploy them in prod, knowing our changes won't interfere with other teams.
 
 ## Problem: I need to route traffic to all pods in a deployment
 
@@ -352,6 +342,20 @@ You probably want to collect metrics about your service's latency, number of HTT
 
 Instead, most IngressControllers will collect a bunch of metrics. For example, Contour will monitor every HTTP request that it forwards to your service, and track the latency and the HTTP status. It then exposes these in [Prometheus metrics](https://projectcontour.io/guides/prometheus/) that you can scrape and graph. This is really convenient, because you save time by not implementing these metrics yourself. And when your service goes down, you'll know, because you'll see the Contour metrics for this namespace/service showing spikes in latency or HTTP 5xx responses.
 
+## Problem: I want isolation from other projects using the same cluster
+
+Your k8s project has gone well. You shipped the project, everyone loves it. The CTO comes over and asks "how was Kubernetes?" Blinking back tears, you say "not too bad". Your team buys you a mug that says "Best YAML Writer". 
+
+Other teams learn from your success and start deploying their projects on Kubernetes. One day they come to you and complain because your Deployment broke their Deployment. Huh? What happened?
+
+It turns out, you wrote a Deployment that matches any pods with the labels `role: backend`. This works fine when you're the only team working in k8s -- you write a pod template with the label `role: backend`, and it gets replicated in the Deployment. What if another team deploys a Pod of their own with `role: backend`? Your Deployment is going to match that Pod, and it'll start replicating another team's stuff! What should you do?
+
+One solution would be to always add a little prefix to those labels, so instead of `backend` your teams agree to use labels like `kangaroo-backend` and `emu-backend`. This relies on everyone having the discipline to keep to the rules. Even if everyone agrees, eventually someone might make a mistake, slip up, and deploy something with the wrong label. This could cause serious problems! Imagine if you accidentally replicated a service that was supposed to be a singleton!
+
+Luckily Kubernetes has a built-in way to isolate teams from each other. It's called a [Namespace]. They let you isolate teams or projects from each other, so their names don't clash. Just like how multiple types can export methods with the same name, for example, `String::new` and `File::new`. Just use `--namespace` in the kubectl CLI to choose which namespace you want to deploy to. 
+
+> Note: at Cloudflare, we usually use two namespaces per team, e.g. "datalossprevention-staging" and "datalossprevention-production". Then when we deploy new K8s changes, we can deploy them in staging to make sure they work, and then deploy them in prod, knowing our changes won't interfere with other teams.
+
 # Conclusion
 
 Web apps face the same problems, no matter where they're deployed. Managing and load-balancing across replicas, limiting network privileges, zero-downtime upgrades -- none of these are unique to Kubernetes. You might already know how to solve them in your favourite deployment model. Kubernetes provides pretty good out-of-the-box solutions for solving them too, you've just got to translate the standard solutions into Kubernetes jargon (pods, deployments, etc).
@@ -359,7 +363,6 @@ Web apps face the same problems, no matter where they're deployed. Managing and 
 To recap:
 
  - A [Pod] is the minimum unit of deployment. A pod runs one (or more) containers.
- - Isolate teams and projects from each other with [Namespaces].
  - Replicate your pods using [Deployments]. This gives you:
   - Resilience to crashes
   - Zero-downtime rolling upgrades
@@ -369,10 +372,19 @@ To recap:
  - Map external traffic into your pod using an [Ingress]
   - Ingress rules map a particular kind of traffic (protocol, URL, etc) to a particular Service
   - Rules are executed by an [IngressController]. Your cluster admins have probably already set one up
+ - Isolate teams and projects from each other with [Namespaces].
+
+_Big thanks to [Sana Oshika], [Jesse Li] and [Mingwei Zhang] for really helpful feedback on drafts of this post. Follow me on [my twitter] for more_
+
+## Related reading
 
 If you're new to containers, I really liked [The Increment's issue all about them][increment-containers]. I also really like [Ivan Velichko's blog][ivan] for learning about Kubernetes and docker internals. Jessie Frazelle's blog is full of really cool container ecosystem bits and pieces, mostly focused on security, but I really liked this piece about [running all her desktop apps in Docker][frazelle]. 
 
 I bookmarked this [article on debugging Kubernetes pods][debugging-pods] back in 2018 when I was first working with k8s, it was incredibly helpful and I kept referring back to it. I've also started using [k9s], a nice terminal UI for Kubernetes. It's much easier than repeatedly typing `kubectl get pods`, copy the pod ID, then `kubectl describe pod <id>`. It's awesome. 
+
+## Footnotes
+
+[^sidecars]: Why is the minimum unit of deployment one _or more_ containers? Why isn't there a way to specify just one container? Why would you want to deploy two containers in the same pod? Well, two reasons. Sometimes your container has a main service (e.g. your API server) and you want to run some auxiliary service too (e.g. to monitor it, or gather metrics/traces). You could do this by running a second service in the same container, but [that's not recommended][oneservicepercontainer]. Instead, you can run the second service in its own container, in the same pod as your main service. k8s people call this the [Sidecar pattern]. The key is that all the containers in a pod _share a network_. Each container has their own separate filesystem, mounts, process set, but they share a network. So your containers can address each other and send requests very easily, without any of the need for Network Policies or Services or DNS or load balancing we've seen above. Ivan Velichko has a [deep dive on this][podvscontainers] if you want to learn more.
 
 
 ---
@@ -389,11 +401,18 @@ I bookmarked this [article on debugging Kubernetes pods][debugging-pods] back in
 [Ingress]: https://kubernetes.io/docs/concepts/services-networking/ingress/
 [IngressController]: https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/
 [ivan]: https://iximiuz.com/en/
+[Jesse Li]: https://blog.jse.li/
 [k9s]: https://k9scli.io/
+[Mingwei Zhang]: https://twitter.com/heymingwei
+[my twitter]: https://twitter.com/adam_chal
 [Namespace]: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
 [Network Policy]: https://kubernetes.io/docs/concepts/services-networking/network-policies/
+[oneservicepercontainer]: https://devops.stackexchange.com/questions/447/why-it-is-recommended-to-run-only-one-process-in-a-container/
 [Pod]: https://kubernetes.io/docs/concepts/workloads/pods/
+[podvscontainers]: https://iximiuz.com/en/posts/containers-vs-pods/
 [primer-on-containerization]: https://increment.com/containers/primer-on-containerization/
 [Restart Policy]: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy
+[Sana Oshika]: https://www.oshika.dev
+[Sidecar pattern]: https://learnk8s.io/sidecar-containers-patterns
 [updating a deployment]: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#updating-a-deployment
 [venv]: https://docs.python.org/3/library/venv.html
