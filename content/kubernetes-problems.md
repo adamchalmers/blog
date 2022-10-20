@@ -8,17 +8,13 @@ draft = false
 tags = ["kubernetes", "ops"]
 +++
 
-I first learned Kubernetes in 2018, when my manager sat me down and said "Cloudflare is migrating to Kubernetes, and you're handling our team's migration." This was slightly terrifying to me, because I was a good programmer and a mediocre engineer. I knew how to write code, but I didn't know how to deploy it, or monitor it in production. My computer science degree had taught me all about algorithms, data structures, type systems and operating systems. It had not taught me about containers, or ElasticSearch, or Kubernetes. I don't think I even wrote a single YAML file in my entire degree. I was scared of ops. I was _terrified_ of Kubernetes.
+I first learned Kubernetes ("k8s" for short) in 2018, when my manager sat me down and said "Cloudflare is migrating to Kubernetes, and you're handling our team's migration." This was slightly terrifying to me, because I was a good programmer and a mediocre engineer. I knew how to write code, but I didn't know how to deploy it, or monitor it in production. My computer science degree had taught me all about algorithms, data structures, type systems and operating systems. It had not taught me about containers, or ElasticSearch, or Kubernetes. I don't think I even wrote a single YAML file in my entire degree. I was scared of ops. I was _terrified_ of Kubernetes.
 
-I read a lot of kubernetes introductions that year, and I developed a theory: by the time you're advanced enough to understand kubernetes, you're too advanced to properly explain it to a beginner. You might intend to write a simple, straightforward tutorial, but somehow the final product will come out totally incomprehensible to its target audience. The curse of experience is losing the ability to understand beginners.
+Eventually I made it through and migrated all the Cloudflare Tunnel infrastructure from Marathon to Kubernetes. I didn't enjoy it, and I was way over my deadline, but I did learn a lot. Now it's 2022, and I'm leading a small team of engineers, some of whom have never used Kubernetes before. So I've found myself explaining Kubernetes to them. They seemed to find it helpful, so I thought I'd write it down and share it with the rest of you.
 
-Eventually I made it through and migrated all the Cloudflare Tunnel infrastructure from Marathon to Kubernetes. I didn't enjoy it, and I was way over my deadline, but I did learn a lot. Now it's 2022, and I'm leading a small team of engineers, some of whom have never used Kubernetes before. So I need to defy the curse of inferential distance, and explain Kubernetes to a beginner. 
-
-You might not need Kubernetes for your use-case, that's OK. But if you're reading this you've probably been forced into it by your company. Here's the introduction I wish I had when I first used k8s back in 2018.
+This article is aimed at engineers who need to deploy their code using Kubernetes, but have no idea what Kubernetes is or how it works. I'm going to tell you a story about a junior engineer. We're going to follow this engineer as they build a high-quality service, and when they run into problems, we'll see how Kubernetes can help solve them. Hopefully this will get you comfortable building your own services in k8s!
 
 <!-- more -->
-
-In my opinion, the problem with Kubernetes articles is that they do everything backwards. They introduce k8s concepts without ever really addressing the problems you're trying to solve. They explain things from the perspective of a k8s maintainer, not of a normal software engineer trying to deploy their software to their work's k8s cluster, and running into problems. But this blog post is going to be a bit different. I'm going to tell you a story about a junior engineer. We're going to follow the problems they have, building a service in k8s, and how they solve them. This should introduce you to all the big basic ideas of Kubernetes and get you ready for building your own service in k8s.
 
 # Introduction: why use k8s?
 
@@ -36,13 +32,13 @@ The big advantage containers have over VMs is that they're really lightweight. Y
 
 For more beginner-level intro to containers, read [this][primer-on-containerization].
 
-You can now deploy all your services on the same machine, each with their own container, in complete isolation. There's no way they can interfere with each other. This is _awesome_ until you realize your services actually do need to talk to each other sometimes. Turns out letting processes message each other is a _pretty common thing and critical to your job_ -- maybe services need to query each other, or read from the same file, or one service needs to check the health of another service. And when you containerized everything, you just made that impossible.
+You can now deploy all your services on the same machine, each with their own container, in complete isolation. There's no way they can interfere with each other. This is _awesome_ until you realize your services actually do need to talk to each other sometimes. Turns out letting processes message each other is a _pretty common thing and critical to your job_. Your company probably uses a service-oriented architecture, or maybe microservices, but either way, there's probably several services that need to communicate to handle requests. For example, frontends, backends, load balancers, session management, auth, user entitlements, writing logs, and billing might all be separate services that need to communicate. If you containerize all these services, you make it impossible for them to coordinate -- by design.
 
 ## Container orchestration
 
 Damnit! We have a problem. Using containers, we built each service a perfect little isolated cell, so they can't communicate. But we did our job too perfectly, we actually do need them to communicate. But only in specific ways that you, the programmer, choose. We don't want to go back to the pre-container days where all programs shared everything -- we saw how much of a mess that creates.
 
-The other problem you'll face is _which containers should be running in the first place_. Your company might have a [Continuous Integration] pipeline which automatically builds a container every time you merge a PR to master. But now you've got all these hundreds or thousands of containers. How do you tell your servers which containers to run?
+The other problem you'll face is _which containers should be running in the first place_. Let's say your company has a [Continuous Integration] system which runs every time you merge a PR to master. You can use it to create a new container image for every commit to your codebase, packaging up your code and all its dependencies (e.g. libraries to link, or a particular version of Python). Now if your commit changes the code's dependencies, that commit's container image will have the right combination of code and dependencies. But now you've got all these hundreds or thousands of containers. How do you tell your servers which containers to run?
 
 We solve this with a _container orchestration_ program, which selectively enables some containers and grants them some resources, including "communication with other containers". The phrase "container orchestration" is a metaphor for an orchestra. Imagine if no musicians in the orchestra could hear each other. They'd play at different speeds, the trumpets would drown out the oboes, every violinist would assume they were the soloist, and none of them would play the harmony parts. It would be chaos. To make this mess of isolated musicians into an orchestra, you need _structure_ and to enforce structure, you need a good conductor. 
 
@@ -55,7 +51,7 @@ A container orchestration program lets you:
 
 Containers solve the problem of "how do I stop these services interfering with each other". Container orchestration solves "how do I let these services work together". They also solve "which services should be running". 
 
-There are many different competing orchestration tools. You might have used [Docker Compose], it's simple and it's built into Docker, the most popular container engine. If you only need to run your containers on one physical machine, then Docker Compose is the orchestrator I'd suggest. But of course, today's software companies never deploy software to just one machine. Firstly, that single machine probably can't handle all your traffic. Secondly, even if it _could_, it would be a single point of failure -- if that machine goes down, your services become unavailable, and your customers can't place orders, and you lose money. So, real-world engineers need to orchestrate containers across many different physical servers. 
+There are many different competing orchestration tools. You might have used [Docker Compose], it's simple and it's built into Docker, the most popular container engine[^docker]. If you only need to run your containers on one physical machine, then Docker Compose is the orchestrator I'd suggest. But of course, today's software companies never deploy software to just one machine. Firstly, that single machine probably can't handle all your traffic. Secondly, even if it _could_, it would be a single point of failure -- if that machine goes down, your services become unavailable, and your customers can't place orders, and you lose money. So, real-world engineers need to orchestrate containers across many different physical servers. 
 
 When I joined Cloudflare, we used [Apache Marathon] for this, but we were rapidly migrating to Kubernetes. This led to one big question:
 
@@ -70,6 +66,8 @@ Its solution is a _cluster_. A Kubernetes cluster is an abstraction. It's a big 
 The cluster runs on your _n_ servers. A server which is part of a Kubernetes cluster is called a _node_.
 
 A good abstraction should hide details from you, but let you access those details if you really need to. Generally your containers don't know and don't care which node they're running on -- the abstraction of the cluster is good enough. But if you really need to, you can query and inspect the various nodes that make up the cluster.
+
+Your company might have one Kubernetes cluster, or it might have many. At a certain level of scale, you might want multiple clusters -- maybe one cluster for production and one for staging, or one cluster in each of America, Europe and Asia. Your SRE or platform team will probably let you know which cluster to deploy to.
 
 So, why use Kubernetes?
 
@@ -184,9 +182,9 @@ Project Kangaroo is becoming more popular, and you're getting too much traffic f
 
 ## Problem: I need to deploy a new version of my backend, without causing downtime
 
-Every week, you release a new version of the Kangaroo backend. The first time you did this, you just deleted the deployment and created a new deployment with a newer version of the kangaroo-backend container. This worked, but it caused a few minutes of downtime, which you're really trying to avoid. How can you deploy new versions with zero downtime?
+Every week, you release a new version of the Kangaroo backend. The first time you did this, you just deleted the deployment and created a new deployment with a newer version of the kangaroo-backend container. This worked, but it caused a few minutes of downtime, which you're really trying to avoid. How can you update kangaroo version 15 to version 16 without causing downtime?
 
-This is a really common problem, so Kubernetes Deployments already support this. It's called [updating a deployment] and it's easy. Just edit the deployment (either using the `kubectl edit` CLI, or by editing your YAML manifest, changing the container image, and rerunning `kubectl apply`). Kubernetes' declarative management kicks in, and notices that the deployment you currently have (on container `kangaroo-backend:1.15`) is not the same as what you want (`kangaroo-backend:1.16`). So it will do a _rolling upgrade_: one at a time, it will
+This is a really common problem, so Kubernetes Deployments already support this. It's called [updating a deployment] and it's easy. Just edit the deployment and change `kangaroo-backend:1.15` to `kangaroo-backend:1.16` (either using the `kubectl edit` CLI, or by editing your YAML manifest, changing the container image, and rerunning `kubectl apply`). Kubernetes' declarative management kicks in, and notices that the deployment you currently have (on container `kangaroo-backend:1.15`) is not the same as what you want (`kangaroo-backend:1.16`). So it will do a _rolling upgrade_: one at a time, it will
 
 1. Notice that the cluster's actual state doesn't match the declared spec (it doesn't have enough replicas on version 1.16)
 2. Start a new pod on version 1.16
@@ -194,6 +192,8 @@ This is a really common problem, so Kubernetes Deployments already support this.
 4. Notice that there's a pod (kangaroo-backend:1.16) that isn't part of any declared spec, so bring the system in line with the declared spec by stopping the pod.
 
 ![A kubernetes doing a rolling upgrade of the pods in a deployment](/kubernetes-problems/rolling-upgrade.png)
+
+This repeats until all the outdated pods are gone, and only the up-to-date pods remain.
 
 ## Problem: I need to route traffic to all pods in a deployment
 
@@ -233,7 +233,7 @@ So, now the kangaroo frontend will just send its API requests to that cluster-in
 
 We just went over how a k8s Service lets you address a set of Pods, even when Pods enter or leave that set (e.g. by restarting, or being upgraded). If you were thinking "this sounds like load balancing" then congratulations, you were right!
 
-If you're using a k8s Service to route traffic to your app, then you get basic load balancing for free. If a pod goes down, the Service will stop routing traffic to it, and start routing traffic to the other pods with the matching labels (probably pods in the same Deployment). As long as the other pods in the cluster use the Service's DNS hostname, their requests will be routed to an available Pod.
+If you're using a k8s Service to route traffic to your app, then you get basic load balancing[^lb] for free. If a pod goes down, the Service will stop routing traffic to it, and start routing traffic to the other pods with the matching labels (probably pods in the same Deployment). As long as the other pods in the cluster use the Service's DNS hostname, their requests will be routed to an available Pod.
 
 ## Problem: I want to accept traffic from outside the cluster
 
@@ -362,19 +362,19 @@ Web apps face the same problems, no matter where they're deployed. Managing and 
 
 To recap:
 
- - A [Pod] is the minimum unit of deployment. A pod runs one (or more) containers.
- - Replicate your pods using [Deployments]. This gives you:
+- A [Pod] is the minimum unit of deployment. A pod runs one (or more) containers.
+- Replicate your pods using [Deployments][Deployment]. This gives you:
   - Resilience to crashes
   - Zero-downtime rolling upgrades
   - Scaling to increased traffic
- - Load balance across the Pods in your Deployment by using a [Service].
- - Limit your Pod's network access with a [Network Policy] to decrease your vulnerable surface area
- - Map external traffic into your pod using an [Ingress]
+- Load balance across the Pods in your Deployment by using a [Service].
+- Limit your Pod's network access with a [Network Policy] to decrease your vulnerable surface area
+- Map external traffic into your pod using an [Ingress]
   - Ingress rules map a particular kind of traffic (protocol, URL, etc) to a particular Service
   - Rules are executed by an [IngressController]. Your cluster admins have probably already set one up
- - Isolate teams and projects from each other with [Namespaces].
+- Isolate teams and projects from each other with [Namespaces][Namespace].
 
-_Big thanks to [Sana Oshika], [Jesse Li] and [Mingwei Zhang] for really helpful feedback on drafts of this post. And a very special thank you to [Tim] and [Terin] from Cloudflare, who have really gone above and beyond the call of duty to help onboard k8s beginners. They're always answering questions and improving the developer experience. They really exemplify what a good platform team should be like._
+_Big thanks to [Sana Oshika], [Jesse Li], [Mingwei Zhang] and Rina Sadun for really helpful feedback on drafts of this post. And a very special thank you to [Tim] and [Terin] from Cloudflare, who have been so helpful teaching me how to understand and use Kubernetes. They're always answering questions and improving the developer experience. They really exemplify what a great platform team looks like._
 
 ## Related reading
 
@@ -388,9 +388,15 @@ I bookmarked this [article on debugging Kubernetes pods][debugging-pods] back in
 
 I've also started using [k9s], a nice terminal UI for Kubernetes. It's much easier than repeatedly typing `kubectl get pods`, copy the pod ID, then `kubectl describe pod <id>`. It's really made exploring my kubernetes projects much easier.
 
+[This article][systemd-k8s] by [Kris Nóva] is about the overlap between systemd and Kubernetes. I'd never thought about their similarities before, but I think she's right -- they're both trying to manage and schedule a lot of services with complex dependency chains. If you squint, Kubernetes is kind of like systemd, except it works across many different machines over a network, and the processes it manages are always in containers. Very thought-provoking article. 
+
 ## Footnotes
 
 [^sidecars]: Why is the minimum unit of deployment one _or more_ containers? Why isn't there a way to specify just one container? Why would you want to deploy two containers in the same pod? Well, two reasons. Sometimes your container has a main service (e.g. your API server) and you want to run some auxiliary service too (e.g. to monitor it, or gather metrics/traces). You could do this by running a second service in the same container, but [that's not recommended][oneservicepercontainer]. Instead, you can run the second service in its own container, in the same pod as your main service. k8s people call this the [Sidecar pattern]. The key is that all the containers in a pod _share a network_. Each container has their own separate filesystem, mounts, process set, but they share a network. So your containers can address each other and send requests very easily, without any of the need for Network Policies or Services or DNS or load balancing we've seen above. Ivan Velichko has a [deep dive on this][podvscontainers] if you want to learn more.
+
+[^docker]: Docker is the most popular container engine, but it's not the only one! Containers as a technology predated Docker, but Docker's method for building and running containers was much more user-friendly than its predecessors. For more, I recommend this [Increment article][primer-on-containerization]
+
+[^lb]: "Basic load balancing" just means Kubernetes will send traffic approximately uniformly across the available pods. If a pod goes down, traffic will be distributed among the remaining pods. If you want something more complex, you'll need a more complex solution. You might, for example, want a "sticky" load balancer that consistently routes the same host to the same backend pod. Or a load balancer that routes 5% of traffic to a special "canary" pod running the latest release, to check it's healthy before it rolls out widely. Or a smart load balancer that tries to steer traffic towards underutilized pods with more available resources. But again, you'll need to build a specific solution for that. By the time you're worrying about those problems, hopefully you won't need this article :)
 
 
 ---
@@ -424,3 +430,5 @@ I've also started using [k9s], a nice terminal UI for Kubernetes. It's much easi
 [Tim]: https://twitter.com/pims
 [updating a deployment]: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#updating-a-deployment
 [venv]: https://docs.python.org/3/library/venv.html
+[systemd-k8s]: https://medium.com/@kris-nova/why-fix-kubernetes-and-systemd-782840e50104
+[Kris Nóva]: https://twitter.com/krisnova
