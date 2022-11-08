@@ -172,7 +172,7 @@ spec:
 
 A deployment manages a set of pods. This specific Deployment is managing any Pods with the label `app: kangaroo`, and it manages them by ensuring there are always 3 replicas of that Pod. We can also nest the definition of the Pod itself inside this Deployment. 
 
-If you apply this Kubernetes manifest, you'll see it creates a Deployment. This doesn't explicitly create matching pods, though, so for a brief moment, none of the replicas are running. But remember, Kubernetes is _declarative, not imperative_. So, Kubernetes notices that its cluster doesn't meet your declared, intended state (3 replicas). So it will take some action to correct that -- i.e. starting a new replica pod. Once that action has been completed, and your pod comes up, Kubernetes will reevaluate the state of the cluster, notice it still have fewer pods that intended, and create a new replica. This repeats unil your defined deployment is actually happening. 
+If you apply this Kubernetes manifest, you'll see it creates a Deployment. This doesn't explicitly create matching pods, though, so for a brief moment, none of the replicas are running. But remember, Kubernetes is _declarative, not imperative_. So, Kubernetes notices that its cluster doesn't meet your declared, intended state (3 replicas). So it will take some action to correct that -- i.e. starting a new replica pod. Once that action has been completed, and your pod comes up, Kubernetes will reevaluate the state of the cluster, notice it still has fewer pods that intended, and create a new replica. This repeats until your defined deployment is actually happening. 
 
 ## Problem: My container can't handle the amount of traffic it's receiving.
 
