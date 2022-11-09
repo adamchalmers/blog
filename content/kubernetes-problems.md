@@ -189,7 +189,7 @@ This is a really common problem, so Kubernetes Deployments already support this.
 1. Notice that the cluster's actual state doesn't match the declared spec (it doesn't have enough replicas on version 1.16)
 2. Start a new pod on version 1.16
 3. If that pod starts successfully, Kubernetes will swap it for an old pod in the deployment
-4. Notice that there's a pod (kangaroo-backend:1.16) that isn't part of any declared spec, so bring the system in line with the declared spec by stopping the pod.
+4. Notice that there's a pod (kangaroo-backend:1.15) that isn't part of any declared spec, so bring the system in line with the declared spec by stopping the pod.
 
 ![A kubernetes doing a rolling upgrade of the pods in a deployment](/kubernetes-problems/rolling-upgrade.png)
 
