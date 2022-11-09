@@ -390,6 +390,8 @@ I've also started using [k9s], a nice terminal UI for Kubernetes. It's much easi
 
 [This article][systemd-k8s] by [Kris Nóva] is about the overlap between systemd and Kubernetes. I'd never thought about their similarities before, but I think she's right -- they're both trying to manage and schedule a lot of services with complex dependency chains. If you squint, Kubernetes is kind of like systemd, except it works across many different machines over a network, and the processes it manages are always in containers. Very thought-provoking article. 
 
+Cloudflare has a really interesting Kubernetes setup. We use our own Zero Trust security suite to let programmers access Kubernetes easily, without needing a VPN. This [blog post](https://blog.cloudflare.com/kubectl-with-zero-trust/) explaining it is worth a read. I actually work on the Zero Trust team, so hearing about pain points/bad UX from the k8s team has helped us improve our product significantly.
+
 ## Footnotes
 
 [^docker]: Docker is the most popular container engine, but it's not the only one! Containers as a technology predated Docker, but Docker's method for building and running containers was much more user-friendly than its predecessors. For more, I recommend this [Increment article][primer-on-containerization]
