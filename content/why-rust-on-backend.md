@@ -72,7 +72,7 @@ just write some JSON transformations and carefully unit test it. But just writin
 seemed much simpler.
 
 Basically, I like that I can share code between different parts of my system. Using Rust for both
-the perf-critical services and non-perf-sensitive services simplifies the overall codebase a lot.≥÷
+the perf-critical services and non-perf-sensitive services simplifies the overall codebase a lot.
 
 ### People issues
 
