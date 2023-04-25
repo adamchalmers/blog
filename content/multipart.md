@@ -22,7 +22,9 @@ So in 1998, [RFC 2388] proposed a new standard, "multipart/form-data", which let
 
 This protocol was designed for uploading files from an HTML form, hence the name. But you can actually use it to upload files from whatever you want -- no part of the spec requires `<form>` or any HTML at all. You can use it to upload files from any HTTP client to any HTTP server.
 
-Another advantage of multipart is that the server can stream each part separately. For example, say you're uploading 5 files by encoding them into a JSON object. Your server will have to buffer the entire JSON object into memory, decode it, and examine each file. But with multipart, the server can stream each part (i.e. file), one at a time, reducing memory usage and improving latency (because it can handle file number 1 without waiting for the other 4 to come in). 
+Another advantage of multipart is that the server can stream each part separately. For example, say you're uploading 5 files by encoding them into a JSON object. Your server will have to buffer the entire JSON object into memory, decode it, and examine each file. But with multipart, the server can stream each part (i.e. file), one at a time, reducing memory usage and improving latency (because it can handle file number 1 without waiting for the other 4 to come in).
+
+(oh, and JSON also can't handle binary files, so you'd need to convert each file into base64 strings. But as discussed above, multipart can handle raw binary, so that's another win)
 
 ## In Rust
 Your Rust HTTP server or client framework probably already supports multipart. I wrote about [streaming multipart in axum previously][static-stream]. [reqwest](https://lib.rs/reqwest) has [built-in support](https://docs.rs/reqwest/latest/reqwest/struct.RequestBuilder.html#method.multipart) too.
@@ -73,9 +75,20 @@ GIF87a.............,...........D..;
 
 You can gzip the entire Multipart response, but you cannot pick and choose compression for particular parts. This is because the root HTTP body defines compression headers for the entire message, including all the parts within a multipart body. So a client has no way to tell the server "this particular part is compressed, but that one is not." And, as discussed above, only 3 specific HTTP headers are allowed inside the multipart's documents -- and compression headers aren't one of them. Thanks to [this great Stack Overflow answer](https://stackoverflow.com/a/66118265/531650) for explaining all this to me.
 
-## Recap
+## Why is this interesting?
 
-So, "multipart" or "form-encoded data" is a MIME type which contains multiple files. Each file has its own MIME type and name. Historically, this was a big improvement over other ways to upload multiple files, because it can send each file as raw binary without extra encoding or escapes. 
+So, "multipart" or "form-encoded data" is a MIME type which contains multiple files. Each file has its own MIME type and name. Historically, this was a big improvement over other ways to upload multiple files, because it can send each file as raw binary without extra encoding or escapes.
+
+Before I wrote this blog post, I found multipart kinda boring. It somehow seems archaic and backwards -- I mean, it was written at a time where HTML forms were the cutting edge of web technology. It's been 25 years since its RFC was first published. Surely we have better ways to upload files now!
+
+But it's actually pretty interesting, in an abstract way. It's trying to efficiently compose multiple file uploads together, and the question of "how do we compose many of this together" is always an interesting question in computer science. 
+
+Part of why I love JSON is that it's easy to compose JSON. If each file upload was a JSON body, it's trivial to compose them: just compose all _n_ separate JSON bodies into 1 big body with _n_ fields. But this has bad performance:
+
+ - You have to base64 the file contents, because JSON can only handle text, not binary
+ - The server has to buffer the entire JSON body into RAM before decoding it
+
+I guess multipart/form-data is an attempt to compose multiple file uploads together _efficiently_. And that tradeoff brings some complexity, like boundaries and content-disposition. I wonder what a modern solution to this problem would look like. Clearly multipart/form-data is good enough, because it's being used everywhere. But if you know of any alternative solutions to this problem, please let me know in the comments!
 
 [RFC 2388]: https://www.rfc-editor.org/rfc/rfc2388
 [RFC 7578]: https://www.rfc-editor.org/rfc/rfc7578#section-4.8
