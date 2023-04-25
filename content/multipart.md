@@ -20,6 +20,8 @@ Multipart solves the problem of efficient file upload. Before Multipart, the sta
 
 So in 1998, [RFC 2388] proposed a new standard, "multipart/form-data", which lets you send many files in one HTTP body without encoding them. No encoding means you save a lot of CPU cycles and keeps the total body size small.
 
+This protocol was designed for uploading files from an HTML form, hence the name. But you can actually use it to upload files from whatever you want -- no part of the spec requires `<form>` or any HTML at all. You can use it to upload files from any HTTP client to any HTTP server.
+
 Another advantage of multipart is that the server can stream each part separately. For example, say you're uploading 5 files by encoding them into a JSON object. Your server will have to buffer the entire JSON object into memory, decode it, and examine each file. But with multipart, the server can stream each part (i.e. file), one at a time, reducing memory usage and improving latency (because it can handle file number 1 without waiting for the other 4 to come in). 
 
 ## In Rust
