@@ -21,4 +21,4 @@ Apologies for the low video quality, I didn't know we'd be releasing this to You
 [KittyCAD]: https://kittycad.io
 [vid]: https://www.youtube.com/watch?v=QF3kMyzMC40
 [nomtags]: https://blog.adamchalmers.com/tags/nom/
-[Winnow]: https://docs.rs/winnow.
+[Winnow]: https://docs.rs/winnow
