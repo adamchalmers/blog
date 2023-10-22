@@ -8,7 +8,7 @@ compile_sass = true
 build_search_index = false
 
 theme = "anpu"
-title = "Adam Chalmers Programming Blog"
+title = "Adam Chalmers"
 description = "Blogging, generally about Rust"
 generate_feed = true
 
@@ -21,6 +21,8 @@ taxonomies = [
 # Put all your custom variables here
 anpu_menu_links = [
     { url = "$BASE_URL/about/", name = "About me" },
+    { url = "$BASE_URL/tags/audio/", name = "Video" },
+    { url = "$BASE_URL/tags/video/", name = "Audio" },
     { url = "$BASE_URL/tags/", name = "Tags" },
     { url = "$BASE_URL/atom.xml", name = "Atom feed" },
 ]
