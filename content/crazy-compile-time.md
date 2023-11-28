@@ -37,7 +37,7 @@ cd cli
 cargo clean && cargo build --release --timings
 ```
 
-to generate a nice diagram showing why it was taking so long. The culprint was clearly the KittyCAD Rust API client. The cargo `--timings` diagram can't show me why that crate takes so long to build, though. I knew it didn't always take that long, so something must have changed.
+to generate a nice diagram showing why it was taking so long. The culprit was clearly the KittyCAD Rust API client. The cargo `--timings` diagram can't show me why that crate takes so long to build, though. I knew it didn't always take that long, so something must have changed.
 
 We use GitHub Actions a lot at KittyCAD, so I looked back through the action runs for publishing our CLI, and found the exact commit where our compile-times suddenly got crazy long. 
 
