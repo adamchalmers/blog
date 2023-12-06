@@ -21,8 +21,8 @@ taxonomies = [
 # Put all your custom variables here
 anpu_menu_links = [
     { url = "$BASE_URL/about/", name = "About me" },
-    { url = "$BASE_URL/tags/audio/", name = "Video" },
-    { url = "$BASE_URL/tags/video/", name = "Audio" },
+    { url = "$BASE_URL/tags/video/", name = "Video" },
+    { url = "$BASE_URL/tags/audio/", name = "Audio" },
     { url = "$BASE_URL/tags/", name = "Tags" },
     { url = "$BASE_URL/atom.xml", name = "Atom feed" },
 ]
