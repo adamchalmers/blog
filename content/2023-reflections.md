@@ -72,6 +72,30 @@ I'm currently watching and loving Veep, and while it's very good, I don't think 
 
 I've been listening to fewer podcasts this year, but I still really enjoyed and listened to most episodes of The Ezra Klein Show, and Oxide and Friends.
 
+# Daily routine
+
+This year I started drinking green tea every morning, because I switched from a hybrid office/remote job to fully remote, and I need to go to a coffee shop and see human beings every day. But I don't want to drink coffee every day. So, matcha it is. I walk Leo to a coffee shop every morning, and to the dog park every day after work.
+
+I started putting DJ sets on YouTube on my second monitor, which makes work feel more fun. Basically every day I listen to one or more of these sets:
+
+ - [DJ Baby Glow](https://www.youtube.com/watch?v=toh0pgYTJQc)
+ - [Taahliah](https://www.youtube.com/watch?v=5oeqJdb9RQA)
+ - [Book Club Radio](https://www.youtube.com/watch?v=-nwooVPycyE&)
+
+I've never listened to a live DJ set on YouTube before, so I'd say that's the main change to my music taste this year. Apart from that it's been pretty similar, a lot of bluegrass, synthy-droney-electropop and rock. I discovered [Amyl and the Sniffers](https://www.youtube.com/watch?v=9QX4bQPw-_w) in October and I've been sort of obsessed with them ever since. Angry Australian rock with female vocals is a really niche subgenre but it describes a lot of my favourite music. I hope I get to see them live someday!
+
+I really liked this [interview with Ezra Klein about how he gets good work done](https://www.gq.com/story/ezra-klein-routine-excellence). He advises us: stop trying to "optimize" your day and routine and habits. Just focus on the fundamentals. What lets you show up every day as a good partner, parent, and coworker. I've been trying to apply that.
+
+# Most petty personal vindication
+
+I have no idea who Alex Guzey is, but I've twice seen articles from him shared around my Austin social group that pissed me off, one about how meditation is bad and another about claiming the book "Why We Sleep" is totally wrong. I argued against both those articles at some meetups in Austin. So, I was happy this year to see an [article](https://guzey.com/2022-lessons/) from him retracting both previous complaints. He now believes both sleep and meditation are now awesome. Chalmers 2. Guzey 0. Thank you for writing the retractions Mr. Guzey, I hope people read it, get more sleep, and consider meditation.
+
+# Language
+
+I spent a week in Mexico at the start of this year, which was a great chance to practice Spanish. I felt totally comfortable speaking Spanish the entire trip! I even felt fine explaining to a pissed-off security guard at the airport that I'd left my luggage unattended somewhere half an hour ago, and had to describe its contents. Speaking Spanish fine in a stressful situation like that made me really feel like I've become conversational, which is a nice achievement considering I started learning Spanish 4 years ago and never took formal classes, only Duolingo and occasional 1:1 conversation lessons via Zoom.
+
+Emboldened by my success with Spanish, I decided to try learning Mandarin, because it's the #2 most spoken language and I already know #1 and #3 (English and Spanish). Mandarin was really fun and captivating. The HelloChinese app is way better than Duolingo's Mandarin course, and it got me through some basics, but I found it really hard to actually memorize anything. So I took a summer semester of Mandarin 101 at the Austin Community College. That was a lot of fun, and made me WAY more comfortable talking in Mandarin than a little teaching app. But wow, it took so many hours of homework to get those results. I basically spent all weekend doing the homework (I found traditional Mandarin characters easier to learn, but they take way longer to write -- it's a tricky tradeoff). So I probably won't take Mandarin 102 in Spring semester because I'd like to have my weekends for relaxing. But maybe I'll find a 1:1 conversation tutor online. That really accelerated my Spanish, hopefully it could do the same for Mandarin.
+
 # Games
 
 I started Hollow Knight in 2017 but I found it a bit too hard. Especially on the Nintendo Switch, with no D-pad. This year I went back and replayed it on my Steam Deck -- wow, what an incredible game. One of the all-time greats.
@@ -82,7 +106,7 @@ Other notables were Satisfactory (which my wife Jordan and I played co-op and _L
 
 This year I wrote 6 articles. Two of them did well on Hackers News: [HTTP Multipart](/multipart) and [Why Rust on the Backend](/why-rust-on-the-backend). The latter got turned into a [P99CONF talk](p99conf-2023), which was my first time presenting at a conference! As a big fan of tech conferences in general and P99CONF in particular, I was really thrilled to give my first talk there. I was really happy with my HTTP Multipart article, because it's a topic that comes up in my work maybe once or twice a year. That's an infuriating time interval because it's just rare enough for me to forget everything I learned about it the last time it came up. So, the first time it came up, I wrote down notes in private. The second time it came up, I shared those notes within my team. The third time it came up, I blogged about it. I think that's a good heuristic, I hope it'll produce more articles that can help other programmers.
 
-My article [recapping Rustconf 2023](/rustconf-2023-recap/) got a surprising amount of attention! I probably should have anticipated that anything mentioning Rust drama would draw in a lot of readers, but, I didn't. I was _very_ surprised to find [Niko Matsakis](https://smallcultfollowing.com/babysteps/blog/2023/10/14/eurorust-reflections/) and [Armin Ronacher](https://lucumr.pocoo.org/2023/10/14/eurorust-whats-a-conference/) linking to that blog post in their reflections on EuroRust 2023. But then it made sense -- Florian Gilcher quoted my blog post in his [EuroRust talk](https://www.youtube.com/watch?v=605fman_h4s&list=PLH6-VpZ3SvUUKFSEPEWiHQi4JqebBj9Tq&index=8). I'm excited for Rustconf 2024 (apparently in Montreal) and I hope it has fewer controversial calls from the Rust foundation/project to distract from how great Rust and its community are.
+My article [recapping Rustconf 2023](/rustconf-2023-recap/) got a surprising amount of attention! I probably should have anticipated that anything mentioning Rust drama would draw in a lot of readers, but, I didn't. I was _very_ surprised to find [Niko Matsakis](https://smallcultfollowing.com/babysteps/blog/2023/10/14/eurorust-reflections/) and [Armin Ronacher](https://lucumr.pocoo.org/2023/10/14/eurorust-whats-a-conference/) linking to that blog post in their reflections on EuroRust 2023. But then it made sense -- Florian Gilcher quoted my blog post in his [EuroRust talk](https://www.youtube.com/watch?v=605fman_h4s&list=PLH6-VpZ3SvUUKFSEPEWiHQi4JqebBj9Tq&index=8). I'm excited for Rustconf 2024 (apparently in Montreal) and I hope next year sees fewer controversial decisions from the Rust foundation/project which distract from how great Rust and its community are.
 
 This year I also started making videos! Every week at Zoo (FKA KittyCAD) I run an hour called Rust Club where we walk through some Rust concept and learn it together. We started recording these for employees to watch later (we're a fully remote company with employees scattered across timezones). Then I realized other people might find it helpful, so we started putting them on YouTube. You can find all the episodes [here](https://www.youtube.com/watch?v=QF3kMyzMC40&list=PL5QpTj21QuBH5L_JHByZKpfkUuousa6Dq).
 
