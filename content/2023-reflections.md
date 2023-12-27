@@ -64,9 +64,16 @@ Since moving to the USA in 2017, I've logged every book I read on [my Goodreads]
 
 I think Oppenheimer was my favourite thing I watched this year. It completely held my attention for all three hours. I know a lot of STEM people didn't like the last hour (Oppenheimer dealing with political skulduggery) but in my opinion, it tied the whole movie together, because it was really an investigation of Oppenheimer's hypocrisy: did he know full well how terrible the consequences of his program would be, and simply ignore it because it was inconvenient, waiting until the atom bomb was finished to paint himself as an opponent of nuclear war? Or did he genuinely believe his research would have an overall positive effect, and spend the rest of his career advocating for a careful prudent use of a necessary, but inherently dangerous technology?
 
-Favourite TV of the year was easily "Beef". What an incredibly well-written show. It's so tense, the relationships and characters are all compelling and realistic. I think I'm going to watch it all again soon.
+Favourite TV of the year is tied between:
 
-I'm currently watching and loving Veep, and while it's very good, I don't think it's as good as everyone hyped it up to be. But it's still worth watching. For All Mankind continues to be excellent -- why does almost nobody I know watch it? It's amazing alt-history focused on the space race. Each season spans 5-10 years, so by its current 4th season there's a permanent Mars colony, but it's still firmly grounded in the 20th century.
+ - "Beef": What an incredibly well-written show. It's so tense, the relationships and characters are all compelling and realistic. I think I'm going to watch it all again soon.
+ - "Deadloch": Two of the funniest people in Australia, Kate McCartney and Kate McLennan of [The Katering Show], made an incredible comedy-drama. In a small town in rural Australia, a man washes up dead on the beach, there's two cops (and you guessed it, they have very different personalities) and a Dark Mofo-style arts festival. It's such a side-splittingly funny show. Funniest show I've watched since 30 Rock or Parks & Rec.
+
+Honorable mentions:
+
+ - "Blue Eyed Samurai": Animated drama set in feudal Japan about a half-white girl searching for her father to take revenge. Straightforward story with many tropes of the genre, but elevated by its really good characters and their complex relationships with each other. Better character and emotional work makes this show stand out among other stories in the same genre.
+ - "Veep": It's very good, I don't think it's as good as everyone hyped it up to be. But it's still worth watching. 
+ - "For All Mankind": Excellent. Why does almost nobody I know watch it? It's amazing alt-history focused on the space race. Each season spans 5-10 years, so by its current 4th season there's a permanent Mars colony, but it's still firmly grounded in the 20th century.
 
 # Podcasts
 
@@ -89,6 +96,10 @@ I really liked this [interview with Ezra Klein about how he gets good work done]
 # Most petty personal vindication
 
 I have no idea who Alex Guzey is, but I've twice seen articles from him shared around my Austin social group that pissed me off, one about how meditation is bad and another about claiming the book "Why We Sleep" is totally wrong. I argued against both those articles at some meetups in Austin. So, I was happy this year to see an [article](https://guzey.com/2022-lessons/) from him retracting both previous complaints. He now believes both sleep and meditation are now awesome. Chalmers 2. Guzey 0. Thank you for writing the retractions Mr. Guzey, I hope people read it, get more sleep, and consider meditation.
+
+# Food
+
+This year I cooked a lot of Szechuan-inspired food, which has generally been better than getting Szechuan food at general-purpose pan-China restaurants (but nowhere near as good as dedicated Szechuan restaurants). I think next year is the year I learn how to cook Thai food at home. As always, [Yeung Man Cooking] has been a huge inspiration. This year I found [Made With Lau] and have been really enjoying their vegetarian recipes. 
 
 # Language
 
@@ -171,3 +182,6 @@ Next year I might not have as much time to blog, because I have a daughter on th
 Jordan finished her dissertation, so she's one step closer to finishing her PhD. Next year she'll be matched to an internship location, so it's possible we'll move away from Austin for a year (to Houston, New York or New Orleans). We'll see -- I hope we can stay in Austin because moving with a 2-month-old will be tough. But either way it'll be fine, and if we move, we'll be back in Austin within 12 months.
 
 [KittyCAD]: https://zoo.dev/design-api
+[The Katering Show]: https://www.youtube.com/channel/UCCGc8JKl5EvE8IjZ_qprNcQ
+[Yeung Man Cooking]: https://www.youtube.com/@YEUNGMANCOOKING
+[Made With Lau]: https://www.youtube.com/c/madewithlau
