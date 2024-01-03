@@ -178,7 +178,7 @@ If you apply this Kubernetes manifest, you'll see it creates a Deployment. This 
 
 Project Kangaroo is becoming more popular, and you're getting too much traffic for your backend to handle. You know the solution -- replicas. Replicas can make a service more performant _and_ more resilient! Luckily, you already know how to use Kubernetes Deployments to replicate your container. So you just adjust the Deployment's spec, increasing the number of replicas. Now your service can scale to the amount of traffic. 
 
-(There's even elastic scaling, where you can programatically define some property like "requests per replica per second should be less than 1,000" and let Kubernetes automatically choose necesssary number of replicas. This is called horizontal auto-scaling, and I'm not going to cover it here, but you can [read more](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/))
+(There's even elastic scaling, where you can programmatically define some property like "requests per replica per second should be less than 1,000" and let Kubernetes automatically choose necesssary number of replicas. This is called horizontal auto-scaling, and I'm not going to cover it here, but you can [read more](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/))
 
 ## Problem: I need to deploy a new version of my backend, without causing downtime
 
