@@ -5,7 +5,7 @@ description = "Why Cloudflare spends so much on users that spend nothing"
 draft = false
 
 [taxonomies]
-tags = ["business"]
+tags = ["business", "scale", "cloudflare"]
 +++
 
 Cloudflare has a really generous free tier, and it gets a _lot_ of free users. I often see comments on Hacker News saying "Cloudflare must be doing something shady, so many people use it for free, and if you're not the customer, then you're the product". This is mostly wrong -- Cloudflare gets a lot of value from its free users, in normal, not-shady ways. Here's why it's helpful to have a ton of free users.
