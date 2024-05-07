@@ -85,6 +85,10 @@ Jyn helped me [view the MIR](https://github.com/GREsau/schemars/issues/246#issue
 
 That improvement was a super promising start, and we're both hopeful that further improvements are possible. I don't really understand the code enough to dive in yet, but maybe some day I'll take a closer look.
 
+## Update
+
+In version 0.8.19, schemars has made massive progress around this issue! Release compile time has been halved again! Another huge win. The [relevant PR](https://github.com/GREsau/schemars/pull/286) has more details.
+
 # Takeaways
 
  - Use `cargo build --timings` to visualize which crates are slow to compile
