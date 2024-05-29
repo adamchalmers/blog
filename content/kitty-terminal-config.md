@@ -11,7 +11,7 @@ I've been using [Kitty] terminal for five years now, and I'm really happy with i
 
 I also made a video showing how I configure a totally fresh Kitty terminal from nothing.
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/Bgr-vVLYAyc" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/-0XjDgaLUY0?si=klaWrwSmw3LC7LRG" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 But if you prefer text, keep reading.
 
