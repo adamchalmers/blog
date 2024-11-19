@@ -427,6 +427,7 @@ Cloudflare has a really interesting Kubernetes setup. We use our own Zero Trust 
 [primer-on-containerization]: https://increment.com/containers/primer-on-containerization/
 [Restart Policy]: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy
 [Sana Oshika]: https://www.oshika.dev
+[Service]: https://kubernetes.io/docs/concepts/services-networking/service/
 [Sidecar pattern]: https://learnk8s.io/sidecar-containers-patterns
 [Terin]: https://twitter.com/terinjokes
 [Tim]: https://twitter.com/pims
