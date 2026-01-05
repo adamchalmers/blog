@@ -1,6 +1,6 @@
 +++
 title = "2025 reflections"
-date = 2026-02-01
+date = 2026-01-02
 description = "Things I did, read, enjoyed, etc"
 draft = false
 
