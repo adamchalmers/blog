@@ -10,7 +10,8 @@ build_search_index = false
 theme = "anpu"
 title = "Adam Chalmers"
 description = "Blogging, generally about Rust"
-generate_feed = true
+generate_feeds = true
+feed_filenames = ["atom.xml"]
 
 taxonomies = [
     { name = "categories" },
@@ -28,4 +29,6 @@ anpu_menu_links = [
 ]
 
 [markdown]
-highlight_code = true
+
+[markdown.highlighting]
+theme = "github-light"
