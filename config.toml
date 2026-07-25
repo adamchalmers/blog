@@ -30,4 +30,4 @@ anpu_menu_links = [
 [markdown]
 
 [markdown.highlighting]
-theme = "github-light"
+theme = "github-dark"
